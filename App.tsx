@@ -1326,37 +1326,58 @@ const ChatScreen = ({ navigation }: any) => {
   }, [userId]);
 
   const loadUserSessions = async () => {
+    console.log('Loading user sessions for userId:', userId);
+    
     try {
-      const response = await fetch(`${CHAT_BACKEND_URL}/api/sessions/${userId}`);
+      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}`;
+      console.log('GET Sessions URL:', url);
+      
+      const response = await fetch(url);
+      console.log('Sessions response status:', response.status);
+      
       if (response.ok) {
         const sessionsData = await response.json();
+        console.log('Raw sessions data:', sessionsData);
+        
         const sessionsWithDates = sessionsData.map((session: any) => ({
           id: session.sessionId,
-          title: session.title,
-          messages: session.messages ? session.messages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          })) : [],
-          lastUpdated: new Date(session.lastUpdated)
+          title: session.title || 'New Chat',
+          messages: [], // Don't load messages here, only load when clicking on session
+          lastUpdated: new Date(session.lastUpdated || session.createdAt)
         }));
+        
+        console.log('Processed sessions:', sessionsWithDates);
         setSessions(sessionsWithDates);
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to load sessions:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading sessions:', error);
+      
       // Fallback to localStorage for development
       if (Platform.OS === 'web' && process.env.NODE_ENV === 'development') {
+        console.log('Trying localStorage fallback...');
         const savedSessions = localStorage.getItem(`chat_sessions_${userId}`);
         if (savedSessions) {
-          const parsed = JSON.parse(savedSessions);
-          const sessionsWithDates = parsed.map((session: any) => ({
-            ...session,
-            lastUpdated: new Date(session.lastUpdated),
-            messages: session.messages.map((msg: any) => ({
-              ...msg,
-              timestamp: new Date(msg.timestamp)
-            }))
-          }));
-          setSessions(sessionsWithDates);
+          try {
+            const parsed = JSON.parse(savedSessions);
+            const sessionsWithDates = parsed.map((session: any) => ({
+              ...session,
+              lastUpdated: new Date(session.lastUpdated),
+              messages: (session.messages || []).map((msg: any) => ({
+                ...msg,
+                timestamp: new Date(msg.timestamp)
+              }))
+            }));
+            setSessions(sessionsWithDates);
+            console.log('Sessions loaded from localStorage:', sessionsWithDates);
+          } catch (parseError) {
+            console.error('Error parsing localStorage sessions:', parseError);
+          }
+        } else {
+          console.log('No localStorage sessions found');
         }
       }
     }
@@ -1444,11 +1465,21 @@ const ChatScreen = ({ navigation }: any) => {
   };
 
   const loadSession = async (sessionId: string) => {
+    console.log('Loading session:', sessionId);
+    setError('');
+    
     try {
-      const response = await fetch(`${CHAT_BACKEND_URL}/api/sessions/${userId}/${sessionId}`);
+      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}/${sessionId}`;
+      console.log('GET URL:', url);
+      
+      const response = await fetch(url);
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         const sessionData = await response.json();
-        const messagesWithDates = sessionData.messages.map((msg: any) => ({
+        console.log('Session data:', sessionData);
+        
+        const messagesWithDates = (sessionData.messages || []).map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         }));
@@ -1457,15 +1488,34 @@ const ChatScreen = ({ navigation }: any) => {
         setMessages(messagesWithDates);
         setError('');
         setShowSidebar(false);
+        console.log('Session loaded successfully');
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to load session:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading session:', error);
-      setError('Failed to load chat session');
+      setError(`Failed to load chat session: ${error.message}`);
+      
+      // Fallback to localStorage for development
+      if (Platform.OS === 'web' && process.env.NODE_ENV === 'development') {
+        const session = sessions.find(s => s.id === sessionId);
+        if (session) {
+          setCurrentSessionId(sessionId);
+          setMessages(session.messages);
+          setError('');
+          setShowSidebar(false);
+          console.log('Session loaded from localStorage fallback');
+        }
+      }
     }
   };
 
   const updateCurrentSession = async (newMessages: ChatMessage[]) => {
     if (!currentSessionId) return;
+    
+    console.log('Updating session:', currentSessionId, 'with', newMessages.length, 'messages');
     
     try {
       // Generate title from first user message if still "New Chat"
@@ -1478,7 +1528,10 @@ const ChatScreen = ({ navigation }: any) => {
         }
       }
       
-      const response = await fetch(`${CHAT_BACKEND_URL}/api/sessions/${userId}/${currentSessionId}`, {
+      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}/${currentSessionId}`;
+      console.log('PUT URL:', url);
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1488,6 +1541,8 @@ const ChatScreen = ({ navigation }: any) => {
           title: title
         }),
       });
+      
+      console.log('Update response status:', response.status);
       
       if (response.ok) {
         // Update local sessions list
@@ -1502,9 +1557,46 @@ const ChatScreen = ({ navigation }: any) => {
           }
           return session;
         }));
+        console.log('Session updated successfully');
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to update session:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating session:', error);
+      
+      // Fallback to localStorage for development
+      if (Platform.OS === 'web' && process.env.NODE_ENV === 'development') {
+        console.log('Using localStorage fallback for session update');
+        
+        // Generate title from first user message if still "New Chat"
+        const currentSession = sessions.find(s => s.id === currentSessionId);
+        let title = currentSession?.title || 'New Chat';
+        if (title === 'New Chat' && newMessages.length > 0) {
+          const firstUserMessage = newMessages.find(m => m.sender === 'user');
+          if (firstUserMessage) {
+            title = firstUserMessage.text.slice(0, 30) + (firstUserMessage.text.length > 30 ? '...' : '');
+          }
+        }
+        
+        // Update local sessions list
+        const updatedSessions = sessions.map(session => {
+          if (session.id === currentSessionId) {
+            return {
+              ...session,
+              title,
+              messages: newMessages,
+              lastUpdated: new Date()
+            };
+          }
+          return session;
+        });
+        
+        setSessions(updatedSessions);
+        localStorage.setItem(`chat_sessions_${userId}`, JSON.stringify(updatedSessions));
+        console.log('Session updated in localStorage');
+      }
     }
   };
 
