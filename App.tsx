@@ -2,10 +2,14 @@ import { ClerkProvider } from '@clerk/clerk-expo';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, Image, TouchableOpacity, TextInput, StyleSheet, Platform, ScrollView, Animated, Dimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, TextInput, StyleSheet, Platform, ScrollView, Animated, Dimensions, Pressable, useWindowDimensions } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-expo';
 import React, { useState } from 'react';
+import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import AppLoading from 'expo-app-loading';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const Stack = createStackNavigator();
 
@@ -17,7 +21,10 @@ const ACCENT = '#3b82f6';
 const LIGHT = '#e0e7ef';
 const SUBTLE = '#a1a1aa';
 
-const { height: windowHeight } = Dimensions.get('window');
+const { height: windowHeight, width: windowWidth } = Dimensions.get('window');
+const isSmall = windowWidth < 600;
+const heroTitleSize = isSmall ? 32 : 48;
+const heroSubtitleSize = isSmall ? 16 : 20;
 
 const HomeScreen = ({ navigation }: any) => {
   // Animation values
@@ -27,6 +34,7 @@ const HomeScreen = ({ navigation }: any) => {
 
   // For smooth scroll on web
   const scrollViewRef = React.useRef<any>(null);
+  const scrollY = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     // Start animations when component mounts
@@ -47,11 +55,20 @@ const HomeScreen = ({ navigation }: any) => {
         useNativeDriver: true,
       }),
     ]).start();
+
+    // For web: ensure body/root can scroll
+    if (Platform.OS === 'web') {
+      document.documentElement.style.overflowY = 'auto';
+      document.body.style.overflowY = 'auto';
+    }
   }, []);
 
   const scrollToSection = (yOffset: number) => {
     console.log('Scrolling to:', yOffset);
-    if (scrollViewRef.current) {
+    if (Platform.OS === 'web') {
+      // Use native web scrolling
+      window.scrollTo({ top: yOffset, behavior: 'smooth' });
+    } else if (scrollViewRef.current) {
       scrollViewRef.current.scrollTo({ y: yOffset, animated: true });
     }
   };
@@ -60,13 +77,270 @@ const HomeScreen = ({ navigation }: any) => {
   const scrollToFeatures = () => scrollToSection(500);
   const scrollToHow = () => scrollToSection(1200);
 
+  // Web version with native scrolling
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ 
+        flex: 1, 
+        backgroundColor: MIDNIGHT,
+      }}>
+        {/* Scrollable Content for Web */}
+        <View style={{ 
+          paddingTop: NAVBAR_HEIGHT,
+          paddingBottom: 20,
+        }}>
+          {/* Hero Section */}
+          <AnimatedLinearGradient
+            colors={[MIDNIGHT, NAVY, MIDNIGHT]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              minHeight: 500,
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingVertical: 60,
+              paddingHorizontal: 24,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}>
+            <Animated.Text style={{ 
+              fontSize: heroTitleSize, 
+              fontWeight: 'bold', 
+              color: LIGHT, 
+              letterSpacing: 1, 
+              textAlign: 'center', 
+              marginBottom: 24, 
+              lineHeight: 56,
+              fontFamily: 'Inter_700Bold',
+              transform: [{ scale: scaleAnim }],
+            }}>
+              TalonAI: Your AI-Powered{'\n'}Car Modification Expert
+            </Animated.Text>
+            <Animated.Text style={{ 
+              fontSize: heroSubtitleSize, 
+              color: SUBTLE, 
+              textAlign: 'center', 
+              marginBottom: 40, 
+              maxWidth: 700,
+              lineHeight: 28,
+              fontFamily: 'Inter_400Regular',
+              opacity: fadeAnim,
+            }}>
+              Transform your vehicle with the help of intelligent AI that understands your car, your goals, and your budget. TalonAI is your personal automotive expert, providing customized recommendations for engine builds, performance upgrades, and problem diagnosis.
+            </Animated.Text>
+            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+              <TouchableOpacity
+                style={{ 
+                  backgroundColor: ACCENT, 
+                  paddingVertical: 18, 
+                  paddingHorizontal: 48, 
+                  borderRadius: 16, 
+                  shadowColor: ACCENT, 
+                  shadowOpacity: 0.4, 
+                  shadowRadius: 12,
+                  elevation: 6,
+                }}
+                onPress={scrollToFeatures}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 1, fontFamily: 'Inter_600SemiBold' }}>Get Started</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </AnimatedLinearGradient>
+
+          {/* Features Section */}
+          <AnimatedSection scrollY={scrollY} index={1}>
+          <View style={{ paddingVertical: 60, paddingHorizontal: 16, alignItems: 'center', backgroundColor: NAVY }}>
+            <Animated.Text style={{ 
+              color: LIGHT, 
+              fontSize: isSmall ? 28 : 40, 
+              fontWeight: 'bold', 
+              marginBottom: 48, 
+              textAlign: 'center',
+              opacity: fadeAnim,
+              fontFamily: 'Inter_700Bold',
+            }}>
+              TalonAI Features
+            </Animated.Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 24, maxWidth: 1200 }}>
+              <AnimatedFeatureCard
+                icon="🤖"
+                title="AI-Powered Car Modifications Assistant"
+                descList={[
+                  'Intelligent Mod Recommendations: Personalized suggestions for your car and goals',
+                  'Build Planning: Engine build plans with cost estimates and timelines',
+                  'Symptom Diagnosis: AI-powered car problem diagnosis and repair',
+                  'Performance Optimization: Advice on horsepower, reliability, aesthetics',
+                ]}
+                delay={0}
+              />
+              <AnimatedFeatureCard
+                icon="🚗"
+                title="Comprehensive Car Profile Management"
+                descList={[
+                  'Vehicle Database: Store make, model, year, resale preferences',
+                  'Mod Tracking: Track installed/planned mods, brands, costs, dates',
+                  'Symptom Logging: Record issues, severity, and resolutions',
+                  'Build Goals: Set and prioritize performance, reliability, or aesthetic goals',
+                ]}
+                delay={200}
+              />
+              <AnimatedFeatureCard
+                icon="💬"
+                title="Conversational AI Experience"
+                descList={[
+                  'Context-Aware Chat: AI remembers your car and conversations',
+                  'Session Management: Seamless conversation flow',
+                  'Multi-Agent System: Specialized AI agents for car tasks',
+                  'Memory System: Stores conversation and car profile history',
+                ]}
+                delay={400}
+              />
+              <AnimatedFeatureCard
+                icon="🔧"
+                title="Expert Knowledge Base"
+                descList={[
+                  'Mod Recommendations: Intakes, turbos, exhausts, suspension, and more',
+                  'Cost Estimation: Realistic pricing for parts and install',
+                  'Brand Recommendations: Trusted brands and products',
+                  'Installation Guidance: Step-by-step mod installation advice',
+                ]}
+                delay={600}
+              />
+              <AnimatedFeatureCard
+                icon="📊"
+                title="Smart Analytics"
+                descList={[
+                  'Build Progress Tracking: Monitor your mod journey',
+                  'Cost Analysis: Track total investment',
+                  'Performance Metrics: Measure horsepower gains',
+                  'Maintenance Logging: Record service history and costs',
+                ]}
+                delay={800}
+              />
+            </View>
+          </View>
+          </AnimatedSection>
+
+          {/* How It Works Section */}
+          <AnimatedSection scrollY={scrollY} index={2}>
+          <View style={{ paddingVertical: 60, paddingHorizontal: 24, alignItems: 'center', backgroundColor: MIDNIGHT }}>
+            <Text style={{ color: LIGHT, fontSize: 36, fontWeight: 'bold', marginBottom: 40, textAlign: 'center' }}>How It Works</Text>
+            <View style={{ maxWidth: 800, width: '100%' }}>
+              <AnimatedHowStep icon="1️⃣" title="Tell us about your car" desc="Enter your vehicle details and preferences" delay={0} />
+              <AnimatedHowStep icon="2️⃣" title="Describe your goals" desc="Whether it's horsepower, reliability, or aesthetics" delay={200} />
+              <AnimatedHowStep icon="3️⃣" title="Get expert advice" desc="Receive personalized recommendations from our AI automotive expert" delay={400} />
+              <AnimatedHowStep icon="4️⃣" title="Track your progress" desc="Monitor your build journey and maintain detailed records" delay={600} />
+            </View>
+          </View>
+          </AnimatedSection>
+
+          {/* Perfect For Section */}
+          <AnimatedSection scrollY={scrollY} index={3}>
+          <View style={{ paddingVertical: 50, alignItems: 'center', backgroundColor: NAVY, paddingHorizontal: 24 }}>
+            <Text style={{ color: LIGHT, fontSize: isSmall ? 24 : 32, fontWeight: 'bold', marginBottom: 32, textAlign: 'center' }}>Perfect For</Text>
+            <View style={{ maxWidth: 700, width: '100%' }}>
+              <Text style={{ color: LIGHT, fontSize: 18, marginBottom: 12, lineHeight: 24 }}>• Performance Enthusiasts looking to maximize their car's potential</Text>
+              <Text style={{ color: LIGHT, fontSize: 18, marginBottom: 12, lineHeight: 24 }}>• DIY Mechanics seeking expert guidance on modifications</Text>
+              <Text style={{ color: LIGHT, fontSize: 18, marginBottom: 12, lineHeight: 24 }}>• Car Owners with performance issues needing diagnosis</Text>
+              <Text style={{ color: LIGHT, fontSize: 18, marginBottom: 12, lineHeight: 24 }}>• Build Planners wanting comprehensive project management</Text>
+            </View>
+          </View>
+          </AnimatedSection>
+
+          {/* Security Note */}
+          <View style={{ paddingVertical: 40, alignItems: 'center', backgroundColor: MIDNIGHT, paddingHorizontal: 24 }}>
+            <Text style={{ color: ACCENT, fontSize: 24, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>🔒 Secure & Private</Text>
+            <Text style={{ color: LIGHT, fontSize: 18, textAlign: 'center', maxWidth: 600, lineHeight: 24 }}>
+              Your car data and conversations are protected with enterprise-grade security and user authentication.
+            </Text>
+          </View>
+
+          {/* Footer */}
+          <View style={{ alignItems: 'center', paddingVertical: 40, backgroundColor: NAVY, paddingHorizontal: 24 }}>
+            <Text style={{ color: SUBTLE, fontSize: 16, textAlign: 'center', maxWidth: 700, lineHeight: 24, marginBottom: 16 }}>
+              Start your automotive journey today - Whether you're planning your first mod or building a complete engine, TalonAI has the expertise to guide you every step of the way.
+            </Text>
+            <Text style={{ color: SUBTLE, fontSize: 16, textAlign: 'center', maxWidth: 700, lineHeight: 24, marginBottom: 24 }}>
+              Powered by advanced AI agents specialized in automotive knowledge, TalonAI combines cutting-edge technology with deep automotive expertise to deliver the most intelligent car modification assistant available.
+            </Text>
+            <Text style={{ color: SUBTLE, fontSize: 14 }}>© {new Date().getFullYear()} TalonAI. All rights reserved.</Text>
+          </View>
+        </View>
+
+        {/* Fixed Navbar */}
+        <View style={{
+          height: NAVBAR_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 32,
+          backgroundColor: `${NAVY}aa`,
+          borderBottomWidth: 1,
+          borderColor: ACCENT,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          width: '100%',
+          shadowColor: ACCENT,
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}>
+          {/* Logo */}
+          <Animated.View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center',
+            transform: [{ scale: scaleAnim }],
+          }}>
+            <Image
+              source={require('./assets/logo.png')}
+              style={{ width: 44, height: 44, borderRadius: 12, marginRight: 12, backgroundColor: '#fff' }}
+              resizeMode="contain"
+            />
+            <Text style={{ color: LIGHT, fontWeight: 'bold', fontSize: 22, letterSpacing: 1, fontFamily: 'Inter_700Bold' }}>TalonAI</Text>
+          </Animated.View>
+          {/* Nav links */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
+            <TouchableOpacity onPress={scrollToTop}>
+              <Text style={{ color: LIGHT, fontSize: 16, fontWeight: '500', marginHorizontal: 12 }}>Home</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={scrollToFeatures}>
+              <Text style={{ color: LIGHT, fontSize: 16, fontWeight: '500', marginHorizontal: 12 }}>Features</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={scrollToHow}>
+              <Text style={{ color: LIGHT, fontSize: 16, fontWeight: '500', marginHorizontal: 12 }}>How It Works</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Auth buttons */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity
+              style={{ paddingVertical: 8, paddingHorizontal: 24, borderRadius: 12, backgroundColor: 'transparent', borderWidth: 1, borderColor: ACCENT }}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Text style={{ color: ACCENT, fontWeight: 'bold', fontSize: 16 }}>Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ paddingVertical: 8, paddingHorizontal: 24, borderRadius: 12, backgroundColor: ACCENT }}
+              onPress={() => navigation.navigate('SignUp')}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Native version with ScrollView
   return (
     <View style={{ 
       flex: 1, 
       backgroundColor: MIDNIGHT,
     }}>
       {/* Scrollable Content */}
-      <ScrollView 
+      <Animated.ScrollView 
         ref={scrollViewRef}
         style={{ 
           flex: 1,
@@ -80,37 +354,43 @@ const HomeScreen = ({ navigation }: any) => {
         bounces={false}
         scrollEnabled={true}
         keyboardShouldPersistTaps="handled"
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
       >
         {/* Hero Section */}
-        <Animated.View style={{ 
-          minHeight: 500, 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          paddingVertical: 60, 
-          paddingHorizontal: 24,
-          backgroundColor: MIDNIGHT,
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }}>
+        <AnimatedLinearGradient
+          colors={[MIDNIGHT, NAVY, MIDNIGHT]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            minHeight: 500,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingVertical: 60,
+            paddingHorizontal: 24,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }}>
           <Animated.Text style={{ 
-            fontSize: 48, 
+            fontSize: heroTitleSize, 
             fontWeight: 'bold', 
             color: LIGHT, 
             letterSpacing: 1, 
             textAlign: 'center', 
             marginBottom: 24, 
             lineHeight: 56,
+            fontFamily: 'Inter_700Bold',
             transform: [{ scale: scaleAnim }],
           }}>
             TalonAI: Your AI-Powered{'\n'}Car Modification Expert
           </Animated.Text>
           <Animated.Text style={{ 
-            fontSize: 20, 
+            fontSize: heroSubtitleSize, 
             color: SUBTLE, 
             textAlign: 'center', 
             marginBottom: 40, 
             maxWidth: 700,
             lineHeight: 28,
+            fontFamily: 'Inter_400Regular',
             opacity: fadeAnim,
           }}>
             Transform your vehicle with the help of intelligent AI that understands your car, your goals, and your budget. TalonAI is your personal automotive expert, providing customized recommendations for engine builds, performance upgrades, and problem diagnosis.
@@ -129,20 +409,22 @@ const HomeScreen = ({ navigation }: any) => {
               }}
               onPress={scrollToFeatures}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 1 }}>Get Started</Text>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 1, fontFamily: 'Inter_600SemiBold' }}>Get Started</Text>
             </TouchableOpacity>
           </Animated.View>
-        </Animated.View>
+        </AnimatedLinearGradient>
 
         {/* Features Section */}
+        <AnimatedSection scrollY={scrollY} index={1}>
         <View style={{ paddingVertical: 60, paddingHorizontal: 16, alignItems: 'center', backgroundColor: NAVY }}>
           <Animated.Text style={{ 
             color: LIGHT, 
-            fontSize: 40, 
+            fontSize: isSmall ? 28 : 40, 
             fontWeight: 'bold', 
             marginBottom: 48, 
             textAlign: 'center',
             opacity: fadeAnim,
+            fontFamily: 'Inter_700Bold',
           }}>
             TalonAI Features
           </Animated.Text>
@@ -204,8 +486,10 @@ const HomeScreen = ({ navigation }: any) => {
             />
           </View>
         </View>
+        </AnimatedSection>
 
         {/* How It Works Section */}
+        <AnimatedSection scrollY={scrollY} index={2}>
         <View style={{ paddingVertical: 60, paddingHorizontal: 24, alignItems: 'center', backgroundColor: MIDNIGHT }}>
           <Text style={{ color: LIGHT, fontSize: 36, fontWeight: 'bold', marginBottom: 40, textAlign: 'center' }}>How It Works</Text>
           <View style={{ maxWidth: 800, width: '100%' }}>
@@ -215,10 +499,12 @@ const HomeScreen = ({ navigation }: any) => {
             <AnimatedHowStep icon="4️⃣" title="Track your progress" desc="Monitor your build journey and maintain detailed records" delay={600} />
           </View>
         </View>
+        </AnimatedSection>
 
         {/* Perfect For Section */}
+        <AnimatedSection scrollY={scrollY} index={3}>
         <View style={{ paddingVertical: 50, alignItems: 'center', backgroundColor: NAVY, paddingHorizontal: 24 }}>
-          <Text style={{ color: LIGHT, fontSize: 32, fontWeight: 'bold', marginBottom: 32, textAlign: 'center' }}>Perfect For</Text>
+          <Text style={{ color: LIGHT, fontSize: isSmall ? 24 : 32, fontWeight: 'bold', marginBottom: 32, textAlign: 'center' }}>Perfect For</Text>
           <View style={{ maxWidth: 700, width: '100%' }}>
             <Text style={{ color: LIGHT, fontSize: 18, marginBottom: 12, lineHeight: 24 }}>• Performance Enthusiasts looking to maximize their car's potential</Text>
             <Text style={{ color: LIGHT, fontSize: 18, marginBottom: 12, lineHeight: 24 }}>• DIY Mechanics seeking expert guidance on modifications</Text>
@@ -226,6 +512,7 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={{ color: LIGHT, fontSize: 18, marginBottom: 12, lineHeight: 24 }}>• Build Planners wanting comprehensive project management</Text>
           </View>
         </View>
+        </AnimatedSection>
 
         {/* Security Note */}
         <View style={{ paddingVertical: 40, alignItems: 'center', backgroundColor: MIDNIGHT, paddingHorizontal: 24 }}>
@@ -245,7 +532,7 @@ const HomeScreen = ({ navigation }: any) => {
           </Text>
           <Text style={{ color: SUBTLE, fontSize: 14 }}>© {new Date().getFullYear()} TalonAI. All rights reserved.</Text>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Fixed Navbar */}
       <View style={{
@@ -254,7 +541,7 @@ const HomeScreen = ({ navigation }: any) => {
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 32,
-        backgroundColor: `${NAVY}ee`,
+        backgroundColor: `${NAVY}aa`,
         borderBottomWidth: 1,
         borderColor: ACCENT,
         position: 'absolute',
@@ -279,7 +566,7 @@ const HomeScreen = ({ navigation }: any) => {
             style={{ width: 44, height: 44, borderRadius: 12, marginRight: 12, backgroundColor: '#fff' }}
             resizeMode="contain"
           />
-          <Text style={{ color: LIGHT, fontWeight: 'bold', fontSize: 22, letterSpacing: 1 }}>TalonAI</Text>
+          <Text style={{ color: LIGHT, fontWeight: 'bold', fontSize: 22, letterSpacing: 1, fontFamily: 'Inter_700Bold' }}>TalonAI</Text>
         </Animated.View>
         {/* Nav links */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
@@ -317,6 +604,15 @@ const HomeScreen = ({ navigation }: any) => {
 const AnimatedFeatureCard = ({ icon, title, descList, delay }: { icon: string; title: string; descList: string[]; delay: number }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(30)).current;
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+  const handleHoverIn = () => {
+    Animated.spring(scaleAnim, { toValue: 1.05, useNativeDriver: true, friction: 5 }).start();
+  };
+
+  const handleHoverOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 5 }).start();
+  };
 
   React.useEffect(() => {
     setTimeout(() => {
@@ -335,29 +631,33 @@ const AnimatedFeatureCard = ({ icon, title, descList, delay }: { icon: string; t
     }, delay);
   }, []);
 
+  const interactiveProps = Platform.OS === 'web' ? { onMouseEnter: handleHoverIn, onMouseLeave: handleHoverOut } : { onPressIn: handleHoverIn, onPressOut: handleHoverOut };
+
   return (
-    <Animated.View style={{ 
-      width: 320, 
-      backgroundColor: MIDNIGHT, 
-      borderRadius: 20, 
-      padding: 32, 
-      alignItems: 'flex-start', 
-      margin: 12, 
-      shadowColor: ACCENT, 
-      shadowOpacity: 0.15, 
-      shadowRadius: 16,
-      elevation: 8,
-      borderWidth: 1,
-      borderColor: 'rgba(59, 130, 246, 0.1)',
-      opacity: fadeAnim,
-      transform: [{ translateY: slideAnim }],
-    }}>
-      <Text style={{ fontSize: 48, marginBottom: 20 }}>{icon}</Text>
-      <Text style={{ color: LIGHT, fontSize: 22, fontWeight: 'bold', marginBottom: 16, lineHeight: 28 }}>{title}</Text>
-      {descList.map((desc, i) => (
-        <Text key={i} style={{ color: SUBTLE, fontSize: 16, marginBottom: 8, lineHeight: 22 }}>• {desc}</Text>
-      ))}
-    </Animated.View>
+    <Pressable {...interactiveProps}>
+      <Animated.View style={{ 
+        width: windowWidth > 700 ? 320 : windowWidth - 48, 
+        backgroundColor: MIDNIGHT, 
+        borderRadius: 20, 
+        padding: 32, 
+        alignItems: 'flex-start', 
+        margin: 12, 
+        shadowColor: ACCENT, 
+        shadowOpacity: 0.15, 
+        shadowRadius: 16,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(59, 130, 246, 0.1)',
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+      }}>
+        <Text style={{ fontSize: 48, marginBottom: 20 }}>{icon}</Text>
+        <Text style={{ color: LIGHT, fontSize: 22, fontFamily: 'Inter_700Bold', marginBottom: 16, lineHeight: 28 }}>{title}</Text>
+        {descList.map((desc, i) => (
+          <Text key={i} style={{ color: SUBTLE, fontSize: 16, fontFamily: 'Inter_400Regular', marginBottom: 8, lineHeight: 22 }}>• {desc}</Text>
+        ))}
+      </Animated.View>
+    </Pressable>
   );
 };
 
@@ -401,6 +701,19 @@ const AnimatedHowStep = ({ icon, title, desc, delay }: { icon: string; title: st
         <Text style={{ color: LIGHT, fontSize: 22, fontWeight: 'bold', marginBottom: 8, lineHeight: 28 }}>{title}</Text>
         <Text style={{ color: SUBTLE, fontSize: 16, lineHeight: 22 }}>{desc}</Text>
       </View>
+    </Animated.View>
+  );
+};
+
+// Generic section wrapper that fades/slides in based on scroll position
+const AnimatedSection = ({ scrollY, index, children }: { scrollY: Animated.Value; index: number; children: React.ReactNode }) => {
+  const { height } = Dimensions.get('window');
+  const inputRange = [height * (index - 0.2), height * index, height * (index + 0.5)];
+  const opacity = scrollY.interpolate({ inputRange, outputRange: [0, 1, 1], extrapolate: 'clamp' });
+  const translateY = scrollY.interpolate({ inputRange, outputRange: [40, 0, 0], extrapolate: 'clamp' });
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
     </Animated.View>
   );
 };
@@ -884,7 +1197,25 @@ function generateSessionId() {
 // TODO: For production, use a secure environment variable solution for the Clerk key
 const CLERK_PUBLISHABLE_KEY = 'pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ';
 
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return <AppLoading />;
+  }
+
+  // Apply global font defaults
+  (Text as any).defaultProps = {
+    ...(Text as any).defaultProps,
+    style: { fontFamily: 'Inter_400Regular', color: LIGHT },
+  };
+
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
       <NavigationContainer>
