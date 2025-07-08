@@ -1,4 +1,7 @@
+const express = require('express');
 const mongoose = require('mongoose');
+
+const router = express.Router();
 
 // MongoDB Schema
 const MessageSchema = new mongoose.Schema({
@@ -73,130 +76,135 @@ const connectToDatabase = async () => {
   }
 };
 
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-export default async function handler(req, res) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).setHeader('Access-Control-Allow-Origin', '*')
-      .setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-      .setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-      .end();
-  }
-
-  // Set CORS headers
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    res.setHeader(key, value);
-  });
-
+// Get all sessions for a user or specific session
+router.get('/:userId/:sessionId?', async (req, res) => {
   try {
     await connectToDatabase();
     
-    const { params } = req.query;
-    const [userId, sessionId] = params || [];
+    const { userId, sessionId } = req.params;
 
-    switch (req.method) {
-      case 'GET':
-        if (!userId) {
-          return res.status(400).json({ error: 'User ID is required' });
-        }
-        
-        if (sessionId) {
-          // Get specific session
-          const session = await ChatSession.findOne({ userId, sessionId });
-          if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
-          }
-          return res.json(session);
-        } else {
-          // Get all sessions for user
-          const sessions = await ChatSession.find({ userId })
-            .sort({ lastUpdated: -1 })
-            .select('sessionId title lastUpdated createdAt')
-            .limit(50);
-          return res.json(sessions);
-        }
-
-      case 'POST':
-        // Create new session
-        const { sessionId: newSessionId, title } = req.body;
-        
-        if (!userId) {
-          return res.status(400).json({ error: 'User ID is required in URL path' });
-        }
-        
-        if (!newSessionId) {
-          return res.status(400).json({ error: 'sessionId is required in request body' });
-        }
-        
-        console.log('Creating session:', { userId, sessionId: newSessionId, title });
-        
-        const newSession = new ChatSession({
-          userId,
-          sessionId: newSessionId,
-          title: title || 'New Chat',
-          messages: [],
-          lastUpdated: new Date(),
-          createdAt: new Date()
-        });
-        
-        await newSession.save();
-        console.log('Session created successfully:', newSession._id);
-        return res.status(201).json(newSession);
-
-      case 'PUT':
-        // Update session
-        if (!userId || !sessionId) {
-          return res.status(400).json({ error: 'userId and sessionId are required' });
-        }
-        
-        const { messages, title: updateTitle } = req.body;
-        
-        if (!messages || !Array.isArray(messages)) {
-          return res.status(400).json({ error: 'Messages array is required' });
-        }
-        
-        const updateData = {
-          messages,
-          lastUpdated: new Date()
-        };
-        
-        if (updateTitle) {
-          updateData.title = updateTitle;
-        }
-        
-        const session = await ChatSession.findOneAndUpdate(
-          { userId, sessionId },
-          updateData,
-          { new: true, upsert: true }
-        );
-        
-        return res.json(session);
-
-      case 'DELETE':
-        // Delete session
-        if (!userId || !sessionId) {
-          return res.status(400).json({ error: 'userId and sessionId are required' });
-        }
-        
-        const deletedSession = await ChatSession.findOneAndDelete({ userId, sessionId });
-        
-        if (!deletedSession) {
-          return res.status(404).json({ error: 'Session not found' });
-        }
-        
-        return res.json({ message: 'Session deleted successfully' });
-
-      default:
-        return res.status(405).json({ error: 'Method not allowed' });
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    if (sessionId) {
+      // Get specific session
+      const session = await ChatSession.findOne({ userId, sessionId });
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      return res.json(session);
+    } else {
+      // Get all sessions for user
+      const sessions = await ChatSession.find({ userId })
+        .sort({ lastUpdated: -1 })
+        .select('sessionId title lastUpdated createdAt')
+        .limit(50);
+      return res.json(sessions);
     }
   } catch (error) {
     console.error('API Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-} 
+});
+
+// Create new session
+router.post('/:userId', async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { userId } = req.params;
+    const { sessionId: newSessionId, title } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required in URL path' });
+    }
+    
+    if (!newSessionId) {
+      return res.status(400).json({ error: 'sessionId is required in request body' });
+    }
+    
+    console.log('Creating session:', { userId, sessionId: newSessionId, title });
+    
+    const newSession = new ChatSession({
+      userId,
+      sessionId: newSessionId,
+      title: title || 'New Chat',
+      messages: [],
+      lastUpdated: new Date(),
+      createdAt: new Date()
+    });
+    
+    await newSession.save();
+    console.log('Session created successfully:', newSession._id);
+    return res.status(201).json(newSession);
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update session
+router.put('/:userId/:sessionId', async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { userId, sessionId } = req.params;
+    
+    if (!userId || !sessionId) {
+      return res.status(400).json({ error: 'userId and sessionId are required' });
+    }
+    
+    const { messages, title: updateTitle } = req.body;
+    
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: 'Messages array is required' });
+    }
+    
+    const updateData = {
+      messages,
+      lastUpdated: new Date()
+    };
+    
+    if (updateTitle) {
+      updateData.title = updateTitle;
+    }
+    
+    const session = await ChatSession.findOneAndUpdate(
+      { userId, sessionId },
+      updateData,
+      { new: true, upsert: true }
+    );
+    
+    return res.json(session);
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete session
+router.delete('/:userId/:sessionId', async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { userId, sessionId } = req.params;
+    
+    if (!userId || !sessionId) {
+      return res.status(400).json({ error: 'userId and sessionId are required' });
+    }
+    
+    const deletedSession = await ChatSession.findOneAndDelete({ userId, sessionId });
+    
+    if (!deletedSession) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    return res.json({ message: 'Session deleted successfully' });
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+module.exports = router; 
