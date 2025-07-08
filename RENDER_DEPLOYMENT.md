@@ -28,8 +28,8 @@ Add these environment variables in your Render dashboard:
 
 | Variable | Value |
 |----------|--------|
-| `VITE_CLERK_PUBLISHABLE_KEY` | `pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ` |
-| `MONGODB_URI` | `mongodb+srv://itscool2b:Dae76AMshAiS8ost@talonai.biu18sm.mongodb.net/talonai-chat?retryWrites=true&w=majority&appName=TalonAI` |
+| `VITE_CLERK_PUBLISHABLE_KEY` | `[YOUR_CLERK_PUBLISHABLE_KEY]` |
+| `MONGODB_URI` | `[YOUR_MONGODB_CONNECTION_STRING]` |
 | `NODE_ENV` | `production` |
 | `PORT` | `3000` |
 
