@@ -8,8 +8,22 @@ const serveStatic = require('serve-static');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'https://talonai.us',
+    'https://www.talonai.us',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:19006'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Import API routes
