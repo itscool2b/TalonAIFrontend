@@ -1466,7 +1466,13 @@ const ChatScreen = ({ navigation }: any) => {
       console.log('Response text:', responseText);
       
       if (response.ok) {
-        const responseData = JSON.parse(responseText);
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Invalid JSON response:', responseText);
+          throw new Error('Invalid response from server');
+        }
         const newSession: ChatSession = {
           id: newSessionId,
           title: 'New Chat',
@@ -1485,7 +1491,12 @@ const ChatScreen = ({ navigation }: any) => {
         try {
           errorData = JSON.parse(responseText);
         } catch {
-          errorData = { error: responseText };
+          // If response is not JSON (e.g., HTML error page), extract meaningful error
+          if (responseText.includes('DOCTYPE') || responseText.includes('<html')) {
+            errorData = { error: 'Server error - please try again' };
+          } else {
+            errorData = { error: responseText || `HTTP ${response.status}` };
+          }
         }
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
