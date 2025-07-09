@@ -36,6 +36,22 @@ app.get('*', (req, res) => {
   }
 });
 
+// Global error handler - ensure we always return JSON for API errors
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  // Always return JSON for API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(err.status || 500).json({
+      error: err.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+  }
+  
+  // For non-API routes, send to client error page
+  res.status(err.status || 500).send('Server Error');
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 

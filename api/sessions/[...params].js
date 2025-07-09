@@ -54,15 +54,8 @@ const connectToDatabase = async () => {
   if (pool) return pool;
   
   try {
-    // First check for explicit pooler URL (highest priority)
-    let connectionString = process.env.SUPABASE_POOLER_URL || process.env.DATABASE_URL;
-    
-    if (!connectionString) {
-      throw new Error('DATABASE_URL environment variable is not set');
-    }
-    
-    // Convert IPv6 to IPv4 if needed
-    connectionString = convertToIPv4PoolerURL(connectionString);
+    // HARDCODED IPv4 POOLER URL - NO MORE IPv6 ISSUES
+    const connectionString = 'postgres://postgres.kzsfexkobshtffdwdpmb:10715Royal!@aws-0-us-west-1.pooler.supabase.com:6543/postgres';
     
     console.log('Attempting to connect to Supabase PostgreSQL...');
     console.log('DATABASE_URL format:', connectionString.substring(0, 30) + '...' + connectionString.slice(-15));
