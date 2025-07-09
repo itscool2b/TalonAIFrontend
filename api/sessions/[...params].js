@@ -1,5 +1,11 @@
 const express = require('express');
 const { Pool } = require('pg');
+const dns = require('dns');
+
+// Force IPv4 on Render
+if (process.env.NODE_ENV === 'production') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const router = express.Router();
 
