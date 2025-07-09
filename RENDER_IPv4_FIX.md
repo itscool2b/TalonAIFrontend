@@ -2,45 +2,46 @@
 
 ## Quick Fix - Update DATABASE_URL in Render
 
-### 1. Get Your Pooler Connection String
+### 1. Use the Correct Pooler Connection String
 
-Go to your Supabase Dashboard:
-1. Open [Supabase Dashboard](https://app.supabase.com)
-2. Select your project
-3. Go to **Settings** → **Database**
-4. Find **Connection pooling** section
-5. Make sure **Pool mode** is set to **Transaction**
-6. Copy the **Connection string**
+For Render deployment, you need the **Transaction Mode Pooler** connection string. 
 
-### 2. Format for Render
-
-The pooler connection string should look like this:
+The correct format is:
 ```
-postgresql://postgres.kzsfexkobshtffdwdpmb:[YOUR-PASSWORD]@aws-0-us-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgres://postgres.kzsfexkobshtffdwdpmb:[YOUR-PASSWORD]@aws-0-us-west-1.pooler.supabase.com:6543/postgres
 ```
 
-For your project, with your password, it should be:
+For your project:
 ```
-postgresql://postgres.kzsfexkobshtffdwdpmb:10715Royal!@aws-0-us-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgres://postgres.kzsfexkobshtffdwdpmb:10715Royal!@aws-0-us-west-1.pooler.supabase.com:6543/postgres
 ```
 
-### 3. Update Render Environment Variable
+**Important Notes:**
+- Use port `6543` for transaction mode (best for serverless)
+- Username format: `postgres.YOUR_PROJECT_REF` (note the dot)
+- NO `?pgbouncer=true` parameter needed
+- Use `postgres://` not `postgresql://`
+
+### 2. Update Render Environment Variable
 
 1. Go to your Render Dashboard
 2. Select your web service
 3. Go to **Environment** tab
-4. Update `DATABASE_URL` to the pooler connection string above
+4. Update `DATABASE_URL` to:
+   ```
+   postgres://postgres.kzsfexkobshtffdwdpmb:10715Royal!@aws-0-us-west-1.pooler.supabase.com:6543/postgres
+   ```
 5. Click **Save Changes**
 6. **Deploy** → **Manual Deploy** → **Deploy latest commit**
 
-### 4. Expected Result
+### 3. Expected Result
 
 You should see in the logs:
 ```
 Attempting to connect to Supabase PostgreSQL...
-DATABASE_URL format: postgresql://postgres....
+DATABASE_URL format: postgres://postgres.kzs...
 ✅ Connected to PostgreSQL successfully
 Database tables created/verified
 ```
 
-No more IPv6 errors or "Tenant not found" errors! 
+No more "Tenant or user not found" errors! 

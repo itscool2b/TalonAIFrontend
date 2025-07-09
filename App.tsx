@@ -1374,18 +1374,23 @@ const ChatScreen = ({ navigation }: any) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const [showSidebar, setShowSidebar] = React.useState(false);
+  const [sessionsLoaded, setSessionsLoaded] = React.useState(false);
+  const [isLoadingSessions, setIsLoadingSessions] = React.useState(false);
   const scrollViewRef = React.useRef<any>(null);
   const inputRef = React.useRef<any>(null);
 
-  // Load chat sessions from MongoDB
+  // Don't load sessions automatically - wait for user interaction
   React.useEffect(() => {
-    if (userId) {
+    if (userId && !sessionsLoaded && showSidebar) {
       loadUserSessions();
     }
-  }, [userId]);
+  }, [userId, showSidebar, sessionsLoaded]);
 
   const loadUserSessions = async () => {
+    if (isLoadingSessions) return; // Prevent multiple simultaneous loads
+    
     console.log('Loading user sessions for userId:', userId);
+    setIsLoadingSessions(true);
     
     try {
       const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}`;
@@ -1407,14 +1412,26 @@ const ChatScreen = ({ navigation }: any) => {
         
         console.log('Processed sessions:', sessionsWithDates);
         setSessions(sessionsWithDates);
+        setSessionsLoaded(true);
+        setError(''); // Clear any previous errors
       } else {
         const errorText = await response.text();
         console.error('Failed to load sessions:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        // Don't throw error, just log it and show empty state
+        setSessions([]);
+        setSessionsLoaded(true);
       }
     } catch (error: any) {
       console.error('Error loading sessions:', error);
-      setError(`Failed to load chat sessions: ${error.message}`);
+      // Don't crash the app, just show empty sessions
+      setSessions([]);
+      setSessionsLoaded(true);
+      // Only show error if it's not a connection issue
+      if (!error.message?.includes('Failed to fetch') && !error.message?.includes('NetworkError')) {
+        setError('Unable to load previous chats');
+      }
+    } finally {
+      setIsLoadingSessions(false);
     }
   };
 
@@ -1474,7 +1491,23 @@ const ChatScreen = ({ navigation }: any) => {
       }
     } catch (error: any) {
       console.error('Error creating session:', error);
-      setError(`Failed to create new chat session: ${error.message}`);
+      // Still create a local session even if server fails
+      const newSession: ChatSession = {
+        id: newSessionId,
+        title: 'New Chat',
+        messages: [],
+        lastUpdated: new Date()
+      };
+      
+      setSessions(prev => [newSession, ...prev]);
+      setCurrentSessionId(newSessionId);
+      setMessages([]);
+      setShowSidebar(false);
+      
+      // Show a warning but don't prevent chat
+      if (!error.message?.includes('Failed to fetch')) {
+        setError('Chat will work but may not save to cloud');
+      }
     }
   };
 
@@ -1510,7 +1543,15 @@ const ChatScreen = ({ navigation }: any) => {
       }
     } catch (error: any) {
       console.error('Error loading session:', error);
-      setError(`Failed to load chat session: ${error.message}`);
+      // Still switch to the session even if loading fails
+      setCurrentSessionId(sessionId);
+      setMessages([]);
+      setShowSidebar(false);
+      
+      // Only show error for non-network issues
+      if (!error.message?.includes('Failed to fetch')) {
+        setError('Unable to load chat history');
+      }
     }
   };
 
@@ -1834,7 +1875,41 @@ const ChatScreen = ({ navigation }: any) => {
 
             {/* Chat Sessions List */}
             <ScrollView style={{ flex: 1, paddingVertical: getResponsiveSpacing(width, 8) }}>
-              {sessions.map((session, index) => (
+              {!sessionsLoaded && !isLoadingSessions && (
+                <TouchableOpacity
+                  onPress={loadUserSessions}
+                  style={{
+                    margin: getResponsiveSpacing(width, 16),
+                    padding: getResponsiveSpacing(width, 12),
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderRadius: 8,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{
+                    color: '#3b82f6',
+                    fontSize: getResponsiveFontSize(width, 14),
+                    fontWeight: '600',
+                    fontFamily: 'Inter_600SemiBold',
+                  }}>
+                    Load Previous Chats
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {isLoadingSessions && (
+                <View style={{ paddingVertical: getResponsiveSpacing(width, 40), alignItems: 'center' }}>
+                  <Text style={{
+                    fontSize: getResponsiveFontSize(width, 14),
+                    color: '#64748b',
+                    fontFamily: 'Inter_400Regular',
+                  }}>
+                    Loading chats...
+                  </Text>
+                </View>
+              )}
+              
+              {sessionsLoaded && sessions.map((session, index) => (
                 <View
                   key={session.id}
                   style={{
@@ -1882,7 +1957,7 @@ const ChatScreen = ({ navigation }: any) => {
                   </TouchableOpacity>
                 </View>
               ))}
-              {sessions.length === 0 && (
+              {sessionsLoaded && sessions.length === 0 && (
                 <View style={{ paddingVertical: getResponsiveSpacing(width, 40), alignItems: 'center' }}>
                   <Text style={{
                     fontSize: getResponsiveFontSize(width, 14),
