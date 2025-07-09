@@ -2229,12 +2229,8 @@ function generateSessionId() {
   return 'session_' + Math.random().toString(36).substr(2, 9);
 }
 
-const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY || (() => {
-  if (process.env.NODE_ENV === 'development') {
-    return 'pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ';
-  }
-  throw new Error('VITE_CLERK_PUBLISHABLE_KEY environment variable is required');
-})();
+const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY || 
+  'pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ';
 const CHAT_BACKEND_URL = process.env.CHAT_BACKEND_URL || 
   (process.env.NODE_ENV === 'production' 
     ? '' // Use relative URLs for Vercel API routes
