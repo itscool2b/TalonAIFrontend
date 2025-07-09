@@ -24,15 +24,53 @@ const BLACK = '#0f172a';
 const BLUE = '#3b82f6';
 const DARK_BLUE = '#1e40af';
 
-const { height: windowHeight, width: windowWidth } = Dimensions.get('window');
-const isSmall = windowWidth < 768;
-const isMobile = windowWidth < 640;
+// Responsive breakpoints
+const BREAKPOINTS = {
+  mobile: 640,
+  tablet: 768,
+  desktop: 1024,
+  wide: 1280,
+};
+
+// Responsive helper functions
+const getBreakpoint = (width: number) => {
+  if (width < BREAKPOINTS.mobile) return 'mobile';
+  if (width < BREAKPOINTS.tablet) return 'tablet';
+  if (width < BREAKPOINTS.desktop) return 'desktop';
+  return 'wide';
+};
+
+const getResponsiveValue = (width: number, values: { mobile: any; tablet?: any; desktop?: any; wide?: any }) => {
+  const breakpoint = getBreakpoint(width);
+  return values[breakpoint] || values.desktop || values.tablet || values.mobile;
+};
+
+const getResponsiveFontSize = (width: number, baseSize: number) => {
+  const multiplier = getResponsiveValue(width, {
+    mobile: 0.8,
+    tablet: 0.9,
+    desktop: 1,
+    wide: 1.1,
+  });
+  return baseSize * multiplier;
+};
+
+const getResponsiveSpacing = (width: number, baseSpacing: number) => {
+  const multiplier = getResponsiveValue(width, {
+    mobile: 0.7,
+    tablet: 0.85,
+    desktop: 1,
+    wide: 1.2,
+  });
+  return baseSpacing * multiplier;
+};
 
 const HomeScreen = ({ navigation }: any) => {
   // Animation values
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(30)).current;
   const scrollViewRef = React.useRef<any>(null);
+  const { width } = useWindowDimensions();
 
   React.useEffect(() => {
     Animated.parallel([
@@ -62,8 +100,8 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
-  const scrollToFeatures = () => scrollToSection(600);
-  const scrollToTechnology = () => scrollToSection(1400);
+  const scrollToFeatures = () => scrollToSection(getResponsiveValue(width, { mobile: 400, tablet: 500, desktop: 600, wide: 700 }));
+  const scrollToTechnology = () => scrollToSection(getResponsiveValue(width, { mobile: 1000, tablet: 1200, desktop: 1400, wide: 1600 }));
 
   // Web version
   if (Platform.OS === 'web') {
@@ -74,20 +112,20 @@ const HomeScreen = ({ navigation }: any) => {
         
         {/* Hero Section */}
         <View style={{
-          paddingTop: NAVBAR_HEIGHT + 80,
-          paddingBottom: 120,
-          paddingHorizontal: 24,
+          paddingTop: NAVBAR_HEIGHT + getResponsiveSpacing(width, 80),
+          paddingBottom: getResponsiveSpacing(width, 120),
+          paddingHorizontal: getResponsiveSpacing(width, 24),
           alignItems: 'center',
           backgroundColor: WHITE,
         }}>
           <View style={{ maxWidth: 1200, width: '100%', alignItems: 'center' }}>
             <Animated.Text style={{
-              fontSize: isMobile ? 42 : isSmall ? 52 : 68,
+              fontSize: getResponsiveValue(width, { mobile: 36, tablet: 48, desktop: 64, wide: 72 }),
               fontWeight: '800',
               color: BLACK,
               textAlign: 'center',
-              marginBottom: 24,
-              lineHeight: isMobile ? 48 : isSmall ? 60 : 76,
+              marginBottom: getResponsiveSpacing(width, 24),
+              lineHeight: getResponsiveValue(width, { mobile: 42, tablet: 54, desktop: 70, wide: 78 }),
               fontFamily: 'Inter_700Bold',
               letterSpacing: -1,
               opacity: fadeAnim,
@@ -96,12 +134,12 @@ const HomeScreen = ({ navigation }: any) => {
               Everything App for your{'\n'}Car Modifications
             </Animated.Text>
             <Animated.Text style={{
-              fontSize: isMobile ? 20 : 22,
+              fontSize: getResponsiveFontSize(width, 22),
               color: GRAY,
               textAlign: 'center',
-              marginBottom: 40,
-              maxWidth: 650,
-              lineHeight: 32,
+              marginBottom: getResponsiveSpacing(width, 40),
+              maxWidth: getResponsiveValue(width, { mobile: 320, tablet: 500, desktop: 650, wide: 750 }),
+              lineHeight: getResponsiveValue(width, { mobile: 28, tablet: 30, desktop: 32, wide: 34 }),
               fontFamily: 'Inter_400Regular',
               fontWeight: '400',
               opacity: fadeAnim,
@@ -145,11 +183,11 @@ const HomeScreen = ({ navigation }: any) => {
         }}>
           <View style={{ maxWidth: 1200, width: '100%', alignSelf: 'center' }}>
             <Text style={{
-              fontSize: isMobile ? 32 : 40,
+              fontSize: getResponsiveValue(width, { mobile: 28, tablet: 36, desktop: 40, wide: 44 }),
               fontWeight: '700',
               color: BLACK,
               textAlign: 'center',
-              marginBottom: 20,
+              marginBottom: getResponsiveSpacing(width, 20),
               fontFamily: 'Inter_700Bold',
               letterSpacing: -0.5,
             }}>
@@ -199,11 +237,11 @@ const HomeScreen = ({ navigation }: any) => {
         }}>
           <View style={{ maxWidth: 1200, width: '100%', alignSelf: 'center' }}>
             <Text style={{
-              fontSize: isMobile ? 36 : 52,
+              fontSize: getResponsiveValue(width, { mobile: 32, tablet: 44, desktop: 52, wide: 56 }),
               fontWeight: '700',
               color: BLACK,
               textAlign: 'center',
-              marginBottom: 24,
+              marginBottom: getResponsiveSpacing(width, 24),
               fontFamily: 'Inter_700Bold',
               letterSpacing: -0.8,
             }}>
@@ -222,8 +260,8 @@ const HomeScreen = ({ navigation }: any) => {
               TalonAI is a comprehensive platform that provides amazing collaboration opportunities for car enthusiasts and mechanics alike.
             </Text>
             <View style={{
-              flexDirection: isSmall ? 'column' : 'row',
-              gap: 32,
+              flexDirection: getResponsiveValue(width, { mobile: 'column', tablet: 'column', desktop: 'row', wide: 'row' }),
+              gap: getResponsiveSpacing(width, 32),
             }}>
               <HulyFeatureCard
                 title="AI-Powered Recommendations"
@@ -267,11 +305,11 @@ const HomeScreen = ({ navigation }: any) => {
         }}>
           <View style={{ maxWidth: 1200, width: '100%', alignSelf: 'center' }}>
             <Text style={{
-              fontSize: isMobile ? 36 : 52,
+              fontSize: getResponsiveValue(width, { mobile: 32, tablet: 44, desktop: 52, wide: 56 }),
               fontWeight: '700',
               color: BLACK,
               textAlign: 'center',
-              marginBottom: 24,
+              marginBottom: getResponsiveSpacing(width, 24),
               fontFamily: 'Inter_700Bold',
               letterSpacing: -0.8,
             }}>
@@ -291,9 +329,9 @@ const HomeScreen = ({ navigation }: any) => {
             </Text>
             
             <View style={{
-              flexDirection: isSmall ? 'column' : 'row',
-              gap: 32,
-              marginBottom: 60,
+              flexDirection: getResponsiveValue(width, { mobile: 'column', tablet: 'column', desktop: 'row', wide: 'row' }),
+              gap: getResponsiveSpacing(width, 32),
+              marginBottom: getResponsiveSpacing(width, 60),
             }}>
               <TechnologyCard
                 icon="🧠"
@@ -384,11 +422,11 @@ const HomeScreen = ({ navigation }: any) => {
         }}>
           <View style={{ maxWidth: 600, alignItems: 'center' }}>
             <Text style={{
-              fontSize: isMobile ? 36 : 44,
+              fontSize: getResponsiveValue(width, { mobile: 32, tablet: 40, desktop: 44, wide: 48 }),
               fontWeight: '700',
               color: BLACK,
               textAlign: 'center',
-              marginBottom: 24,
+              marginBottom: getResponsiveSpacing(width, 24),
               fontFamily: 'Inter_700Bold',
               letterSpacing: -0.6,
             }}>
@@ -518,104 +556,115 @@ const HomeScreen = ({ navigation }: any) => {
 };
 
 // Technology Card Component
-const TechnologyCard = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-  <View style={{
-    flex: 1,
-    backgroundColor: WHITE,
-    borderRadius: 16,
-    padding: 32,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: BLACK,
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-    alignItems: 'center',
-  }}>
-    <Text style={{ fontSize: 48, marginBottom: 20 }}>{icon}</Text>
-    <Text style={{
-      fontSize: 20,
-      fontWeight: '700',
-      color: BLACK,
-      marginBottom: 16,
-      textAlign: 'center',
-      fontFamily: 'Inter_700Bold',
-      letterSpacing: -0.2,
+const TechnologyCard = ({ icon, title, description }: { icon: string; title: string; description: string }) => {
+  const { width } = useWindowDimensions();
+  
+  return (
+    <View style={{
+      flex: 1,
+      backgroundColor: WHITE,
+      borderRadius: 16,
+      padding: getResponsiveSpacing(width, 32),
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+      shadowColor: BLACK,
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+      alignItems: 'center',
+      minHeight: getResponsiveValue(width, { mobile: 200, tablet: 250, desktop: 280, wide: 300 }),
     }}>
-      {title}
-    </Text>
-    <Text style={{
-      fontSize: 16,
-      color: GRAY,
-      textAlign: 'center',
-      lineHeight: 24,
-      fontFamily: 'Inter_400Regular',
-    }}>
-      {description}
-    </Text>
-  </View>
-);
+      <Text style={{ fontSize: getResponsiveFontSize(width, 48), marginBottom: getResponsiveSpacing(width, 20) }}>{icon}</Text>
+      <Text style={{
+        fontSize: getResponsiveFontSize(width, 20),
+        fontWeight: '700',
+        color: BLACK,
+        marginBottom: getResponsiveSpacing(width, 16),
+        textAlign: 'center',
+        fontFamily: 'Inter_700Bold',
+        letterSpacing: -0.2,
+      }}>
+        {title}
+      </Text>
+      <Text style={{
+        fontSize: getResponsiveFontSize(width, 16),
+        color: GRAY,
+        textAlign: 'center',
+        lineHeight: getResponsiveValue(width, { mobile: 22, tablet: 24, desktop: 24, wide: 26 }),
+        fontFamily: 'Inter_400Regular',
+      }}>
+        {description}
+      </Text>
+    </View>
+  );
+};
 
 // Huly-style Feature Card
-const HulyFeatureCard = ({ title, description, features }: { title: string; description: string; features: string[] }) => (
-  <View style={{
-    flex: 1,
-    backgroundColor: WHITE,
-    borderRadius: 16,
-    padding: 32,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: BLACK,
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  }}>
-    <Text style={{
-      fontSize: 24,
-      fontWeight: '700',
-      color: BLACK,
-      marginBottom: 16,
-      fontFamily: 'Inter_700Bold',
-      letterSpacing: -0.3,
+const HulyFeatureCard = ({ title, description, features }: { title: string; description: string; features: string[] }) => {
+  const { width } = useWindowDimensions();
+  
+  return (
+    <View style={{
+      flex: 1,
+      backgroundColor: WHITE,
+      borderRadius: 16,
+      padding: getResponsiveSpacing(width, 32),
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+      shadowColor: BLACK,
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+      minHeight: getResponsiveValue(width, { mobile: 280, tablet: 320, desktop: 360, wide: 380 }),
     }}>
-      {title}
-    </Text>
-    <Text style={{
-      fontSize: 16,
-      color: GRAY,
-      marginBottom: 24,
-      lineHeight: 26,
-      fontFamily: 'Inter_400Regular',
-    }}>
-      {description}
-    </Text>
-    {features.map((feature, index) => (
-      <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-        <View style={{
-          width: 6,
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: BLUE,
-          marginRight: 12,
-        }} />
-        <Text style={{
-          fontSize: 15,
-          color: DARK_GRAY,
-          fontFamily: 'Inter_400Regular',
-          lineHeight: 22,
-        }}>
-          {feature}
-        </Text>
-      </View>
-    ))}
-  </View>
-);
+      <Text style={{
+        fontSize: getResponsiveFontSize(width, 24),
+        fontWeight: '700',
+        color: BLACK,
+        marginBottom: getResponsiveSpacing(width, 16),
+        fontFamily: 'Inter_700Bold',
+        letterSpacing: -0.3,
+      }}>
+        {title}
+      </Text>
+      <Text style={{
+        fontSize: getResponsiveFontSize(width, 16),
+        color: GRAY,
+        marginBottom: getResponsiveSpacing(width, 24),
+        lineHeight: getResponsiveValue(width, { mobile: 22, tablet: 24, desktop: 26, wide: 28 }),
+        fontFamily: 'Inter_400Regular',
+      }}>
+        {description}
+      </Text>
+      {features.map((feature, index) => (
+        <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: getResponsiveSpacing(width, 10) }}>
+          <View style={{
+            width: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
+            height: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
+            borderRadius: 3,
+            backgroundColor: BLUE,
+            marginRight: getResponsiveSpacing(width, 12),
+          }} />
+          <Text style={{
+            fontSize: getResponsiveFontSize(width, 15),
+            color: DARK_GRAY,
+            fontFamily: 'Inter_400Regular',
+            lineHeight: getResponsiveValue(width, { mobile: 20, tablet: 22, desktop: 22, wide: 24 }),
+          }}>
+            {feature}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+};
 
 // Huly-style Navigation Bar
 const HulyNavbar = ({ navigation, scrollToFeatures, scrollToTechnology }: any) => {
   const { isSignedIn } = useAuth();
+  const { width } = useWindowDimensions();
   
   const handleChatNavigation = () => {
     if (isSignedIn) {
@@ -635,7 +684,7 @@ const HulyNavbar = ({ navigation, scrollToFeatures, scrollToTechnology }: any) =
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 24,
+      paddingHorizontal: getResponsiveSpacing(width, 24),
       backgroundColor: WHITE,
       borderBottomWidth: 1,
       borderBottomColor: '#e2e8f0',
@@ -658,7 +707,7 @@ const HulyNavbar = ({ navigation, scrollToFeatures, scrollToTechnology }: any) =
         <Text style={{
           color: BLACK,
           fontWeight: '700',
-          fontSize: 22,
+          fontSize: getResponsiveFontSize(width, 22),
           fontFamily: 'Inter_700Bold',
           letterSpacing: -0.3,
         }}>
@@ -667,12 +716,12 @@ const HulyNavbar = ({ navigation, scrollToFeatures, scrollToTechnology }: any) =
       </TouchableOpacity>
 
       {/* Navigation Links - Hidden on mobile */}
-      {!isMobile && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 32 }}>
+      {getBreakpoint(width) !== 'mobile' && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: getResponsiveSpacing(width, 32) }}>
           <TouchableOpacity onPress={() => scrollToFeatures && scrollToFeatures()}>
             <Text style={{ 
               color: DARK_GRAY, 
-              fontSize: 16, 
+              fontSize: getResponsiveFontSize(width, 16), 
               fontWeight: '500', 
               fontFamily: 'Inter_600SemiBold',
               letterSpacing: -0.1,
@@ -683,7 +732,7 @@ const HulyNavbar = ({ navigation, scrollToFeatures, scrollToTechnology }: any) =
           <TouchableOpacity onPress={() => scrollToTechnology && scrollToTechnology()}>
             <Text style={{ 
               color: DARK_GRAY, 
-              fontSize: 16, 
+              fontSize: getResponsiveFontSize(width, 16), 
               fontWeight: '500', 
               fontFamily: 'Inter_600SemiBold',
               letterSpacing: -0.1,
@@ -694,7 +743,7 @@ const HulyNavbar = ({ navigation, scrollToFeatures, scrollToTechnology }: any) =
           <TouchableOpacity onPress={handleChatNavigation}>
             <Text style={{ 
               color: DARK_GRAY, 
-              fontSize: 16, 
+              fontSize: getResponsiveFontSize(width, 16), 
               fontWeight: '500', 
               fontFamily: 'Inter_600SemiBold',
               letterSpacing: -0.1,
@@ -778,13 +827,20 @@ const HulyNavbar = ({ navigation, scrollToFeatures, scrollToTechnology }: any) =
 
 // Legacy components (simplified for now)
 const FeatureCard = ({ icon, title, descList }: { icon: string; title: string; descList: string[] }) => {
+  const { width } = useWindowDimensions();
+  
   return (
     <View style={{
-      width: windowWidth > 700 ? 320 : windowWidth - 48,
+      width: getResponsiveValue(width, { 
+        mobile: width - 48, 
+        tablet: 300, 
+        desktop: 320, 
+        wide: 340 
+      }),
       backgroundColor: WHITE,
       borderRadius: 16,
-      padding: 24,
-      margin: 12,
+      padding: getResponsiveSpacing(width, 24),
+      margin: getResponsiveSpacing(width, 12),
       borderWidth: 1,
       borderColor: '#e2e8f0',
       shadowColor: BLACK,
@@ -792,23 +848,23 @@ const FeatureCard = ({ icon, title, descList }: { icon: string; title: string; d
       shadowRadius: 8,
       elevation: 3,
     }}>
-      <Text style={{ fontSize: 32, marginBottom: 16 }}>{icon}</Text>
+      <Text style={{ fontSize: getResponsiveFontSize(width, 32), marginBottom: getResponsiveSpacing(width, 16) }}>{icon}</Text>
       <Text style={{
         color: BLACK,
-        fontSize: 20,
+        fontSize: getResponsiveFontSize(width, 20),
         fontFamily: 'Inter_700Bold',
-        marginBottom: 12,
-        lineHeight: 24
+        marginBottom: getResponsiveSpacing(width, 12),
+        lineHeight: getResponsiveValue(width, { mobile: 22, tablet: 24, desktop: 24, wide: 26 })
       }}>
         {title}
       </Text>
       {descList.map((desc, i) => (
         <Text key={i} style={{
           color: GRAY,
-          fontSize: 14,
+          fontSize: getResponsiveFontSize(width, 14),
           fontFamily: 'Inter_400Regular',
-          marginBottom: 6,
-          lineHeight: 20
+          marginBottom: getResponsiveSpacing(width, 6),
+          lineHeight: getResponsiveValue(width, { mobile: 18, tablet: 20, desktop: 20, wide: 22 })
         }}>
           • {desc}
         </Text>
@@ -824,6 +880,7 @@ const LoginScreen = ({ navigation }: any) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { width } = useWindowDimensions();
 
   const handleLogin = async () => {
     if (!isLoaded) return;
@@ -859,15 +916,15 @@ const LoginScreen = ({ navigation }: any) => {
         flex: 1, 
         justifyContent: 'center', 
         alignItems: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: getResponsiveSpacing(width, 24),
         paddingTop: NAVBAR_HEIGHT,
       }}>
         <View style={{
           backgroundColor: WHITE,
           borderRadius: 16,
-          padding: 40,
+          padding: getResponsiveSpacing(width, 40),
           width: '100%',
-          maxWidth: 400,
+          maxWidth: getResponsiveValue(width, { mobile: 350, tablet: 400, desktop: 450, wide: 500 }),
           shadowColor: BLACK,
           shadowOpacity: 0.05,
           shadowRadius: 12,
@@ -877,18 +934,18 @@ const LoginScreen = ({ navigation }: any) => {
           borderColor: '#e2e8f0',
         }}>
           {/* Header */}
-          <View style={{ alignItems: 'center', marginBottom: 32 }}>
+          <View style={{ alignItems: 'center', marginBottom: getResponsiveSpacing(width, 32) }}>
             <Text style={{
-              fontSize: 28,
+              fontSize: getResponsiveFontSize(width, 28),
               fontWeight: '700',
               color: BLACK,
-              marginBottom: 8,
+              marginBottom: getResponsiveSpacing(width, 8),
               fontFamily: 'Inter_700Bold',
             }}>
               Welcome back
             </Text>
             <Text style={{
-              fontSize: 16,
+              fontSize: getResponsiveFontSize(width, 16),
               color: GRAY,
               textAlign: 'center',
               fontFamily: 'Inter_400Regular',
@@ -898,12 +955,12 @@ const LoginScreen = ({ navigation }: any) => {
           </View>
 
           {/* Form */}
-          <View style={{ marginBottom: 24 }}>
+          <View style={{ marginBottom: getResponsiveSpacing(width, 24) }}>
             <Text style={{
-              fontSize: 14,
+              fontSize: getResponsiveFontSize(width, 14),
               fontWeight: '500',
               color: DARK_GRAY,
-              marginBottom: 8,
+              marginBottom: getResponsiveSpacing(width, 8),
               fontFamily: 'Inter_600SemiBold',
             }}>
               Email
@@ -920,19 +977,19 @@ const LoginScreen = ({ navigation }: any) => {
                 borderWidth: 1,
                 borderColor: '#e2e8f0',
                 borderRadius: 8,
-                padding: 12,
-                fontSize: 16,
+                padding: getResponsiveSpacing(width, 12),
+                fontSize: getResponsiveFontSize(width, 16),
                 color: BLACK,
                 fontFamily: 'Inter_400Regular',
-                marginBottom: 16,
+                marginBottom: getResponsiveSpacing(width, 16),
               }}
             />
             
             <Text style={{
-              fontSize: 14,
+              fontSize: getResponsiveFontSize(width, 14),
               fontWeight: '500',
               color: DARK_GRAY,
-              marginBottom: 8,
+              marginBottom: getResponsiveSpacing(width, 8),
               fontFamily: 'Inter_600SemiBold',
             }}>
               Password
@@ -948,8 +1005,8 @@ const LoginScreen = ({ navigation }: any) => {
                 borderWidth: 1,
                 borderColor: '#e2e8f0',
                 borderRadius: 8,
-                padding: 12,
-                fontSize: 16,
+                padding: getResponsiveSpacing(width, 12),
+                fontSize: getResponsiveFontSize(width, 16),
                 color: BLACK,
                 fontFamily: 'Inter_400Regular',
               }}
@@ -962,12 +1019,12 @@ const LoginScreen = ({ navigation }: any) => {
               borderWidth: 1,
               borderColor: '#fecaca',
               borderRadius: 8,
-              padding: 12,
-              marginBottom: 24,
+              padding: getResponsiveSpacing(width, 12),
+              marginBottom: getResponsiveSpacing(width, 24),
             }}>
               <Text style={{
                 color: '#dc2626',
-                fontSize: 14,
+                fontSize: getResponsiveFontSize(width, 14),
                 textAlign: 'center',
                 fontFamily: 'Inter_400Regular',
               }}>
@@ -979,10 +1036,10 @@ const LoginScreen = ({ navigation }: any) => {
           <TouchableOpacity
             style={{
               backgroundColor: loading ? GRAY : BLUE,
-              paddingVertical: 12,
+              paddingVertical: getResponsiveSpacing(width, 12),
               borderRadius: 8,
               alignItems: 'center',
-              marginBottom: 16,
+              marginBottom: getResponsiveSpacing(width, 16),
               shadowColor: BLUE,
               shadowOpacity: loading ? 0 : 0.25,
               shadowRadius: 8,
@@ -994,7 +1051,7 @@ const LoginScreen = ({ navigation }: any) => {
           >
             <Text style={{
               color: WHITE,
-              fontSize: 16,
+              fontSize: getResponsiveFontSize(width, 16),
               fontWeight: '600',
               fontFamily: 'Inter_600SemiBold',
             }}>
@@ -1008,7 +1065,7 @@ const LoginScreen = ({ navigation }: any) => {
           >
             <Text style={{
               color: GRAY,
-              fontSize: 14,
+              fontSize: getResponsiveFontSize(width, 14),
               fontFamily: 'Inter_400Regular',
             }}>
               Don't have an account?{' '}
@@ -1031,6 +1088,7 @@ const SignUpScreen = ({ navigation }: any) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingVerification, setPendingVerification] = useState(false);
+  const { width } = useWindowDimensions();
 
   const handleSignUp = async () => {
     if (!isLoaded) return;
@@ -1087,15 +1145,15 @@ const SignUpScreen = ({ navigation }: any) => {
         flex: 1, 
         justifyContent: 'center', 
         alignItems: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: getResponsiveSpacing(width, 24),
         paddingTop: NAVBAR_HEIGHT,
       }}>
         <View style={{
           backgroundColor: WHITE,
           borderRadius: 16,
-          padding: 40,
+          padding: getResponsiveSpacing(width, 40),
           width: '100%',
-          maxWidth: 400,
+          maxWidth: getResponsiveValue(width, { mobile: 350, tablet: 400, desktop: 450, wide: 500 }),
           shadowColor: BLACK,
           shadowOpacity: 0.05,
           shadowRadius: 12,
@@ -1105,18 +1163,18 @@ const SignUpScreen = ({ navigation }: any) => {
           borderColor: '#e2e8f0',
         }}>
           {/* Header */}
-          <View style={{ alignItems: 'center', marginBottom: 32 }}>
+          <View style={{ alignItems: 'center', marginBottom: getResponsiveSpacing(width, 32) }}>
             <Text style={{
-              fontSize: 28,
+              fontSize: getResponsiveFontSize(width, 28),
               fontWeight: '700',
               color: BLACK,
-              marginBottom: 8,
+              marginBottom: getResponsiveSpacing(width, 8),
               fontFamily: 'Inter_700Bold',
             }}>
               {pendingVerification ? 'Verify your email' : 'Get started'}
             </Text>
             <Text style={{
-              fontSize: 16,
+              fontSize: getResponsiveFontSize(width, 16),
               color: GRAY,
               textAlign: 'center',
               fontFamily: 'Inter_400Regular',
@@ -1130,12 +1188,12 @@ const SignUpScreen = ({ navigation }: any) => {
 
           {/* Form */}
           {!pendingVerification ? (
-            <View style={{ marginBottom: 24 }}>
+            <View style={{ marginBottom: getResponsiveSpacing(width, 24) }}>
               <Text style={{
-                fontSize: 14,
+                fontSize: getResponsiveFontSize(width, 14),
                 fontWeight: '500',
                 color: DARK_GRAY,
-                marginBottom: 8,
+                marginBottom: getResponsiveSpacing(width, 8),
                 fontFamily: 'Inter_600SemiBold',
               }}>
                 Email
@@ -1152,19 +1210,19 @@ const SignUpScreen = ({ navigation }: any) => {
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                   borderRadius: 8,
-                  padding: 12,
-                  fontSize: 16,
+                  padding: getResponsiveSpacing(width, 12),
+                  fontSize: getResponsiveFontSize(width, 16),
                   color: BLACK,
                   fontFamily: 'Inter_400Regular',
-                  marginBottom: 16,
+                  marginBottom: getResponsiveSpacing(width, 16),
                 }}
               />
               
               <Text style={{
-                fontSize: 14,
+                fontSize: getResponsiveFontSize(width, 14),
                 fontWeight: '500',
                 color: DARK_GRAY,
-                marginBottom: 8,
+                marginBottom: getResponsiveSpacing(width, 8),
                 fontFamily: 'Inter_600SemiBold',
               }}>
                 Password
@@ -1180,20 +1238,20 @@ const SignUpScreen = ({ navigation }: any) => {
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                   borderRadius: 8,
-                  padding: 12,
-                  fontSize: 16,
+                  padding: getResponsiveSpacing(width, 12),
+                  fontSize: getResponsiveFontSize(width, 16),
                   color: BLACK,
                   fontFamily: 'Inter_400Regular',
                 }}
               />
             </View>
           ) : (
-            <View style={{ marginBottom: 24 }}>
+            <View style={{ marginBottom: getResponsiveSpacing(width, 24) }}>
               <Text style={{
-                fontSize: 14,
+                fontSize: getResponsiveFontSize(width, 14),
                 fontWeight: '500',
                 color: DARK_GRAY,
-                marginBottom: 8,
+                marginBottom: getResponsiveSpacing(width, 8),
                 fontFamily: 'Inter_600SemiBold',
               }}>
                 Verification Code
@@ -1209,8 +1267,8 @@ const SignUpScreen = ({ navigation }: any) => {
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                   borderRadius: 8,
-                  padding: 12,
-                  fontSize: 16,
+                  padding: getResponsiveSpacing(width, 12),
+                  fontSize: getResponsiveFontSize(width, 16),
                   color: BLACK,
                   fontFamily: 'Inter_400Regular',
                   textAlign: 'center',
@@ -1227,12 +1285,12 @@ const SignUpScreen = ({ navigation }: any) => {
               borderWidth: 1,
               borderColor: '#fecaca',
               borderRadius: 8,
-              padding: 12,
-              marginBottom: 24,
+              padding: getResponsiveSpacing(width, 12),
+              marginBottom: getResponsiveSpacing(width, 24),
             }}>
               <Text style={{
                 color: '#dc2626',
-                fontSize: 14,
+                fontSize: getResponsiveFontSize(width, 14),
                 textAlign: 'center',
                 fontFamily: 'Inter_400Regular',
               }}>
@@ -1244,10 +1302,10 @@ const SignUpScreen = ({ navigation }: any) => {
           <TouchableOpacity
             style={{
               backgroundColor: loading ? GRAY : BLUE,
-              paddingVertical: 12,
+              paddingVertical: getResponsiveSpacing(width, 12),
               borderRadius: 8,
               alignItems: 'center',
-              marginBottom: 16,
+              marginBottom: getResponsiveSpacing(width, 16),
               shadowColor: BLUE,
               shadowOpacity: loading ? 0 : 0.25,
               shadowRadius: 8,
@@ -1259,7 +1317,7 @@ const SignUpScreen = ({ navigation }: any) => {
           >
             <Text style={{
               color: WHITE,
-              fontSize: 16,
+              fontSize: getResponsiveFontSize(width, 16),
               fontWeight: '600',
               fontFamily: 'Inter_600SemiBold',
             }}>
@@ -1277,7 +1335,7 @@ const SignUpScreen = ({ navigation }: any) => {
             >
               <Text style={{
                 color: GRAY,
-                fontSize: 14,
+                fontSize: getResponsiveFontSize(width, 14),
                 fontFamily: 'Inter_400Regular',
               }}>
                 Already have an account?{' '}
@@ -1308,6 +1366,7 @@ interface ChatSession {
 
 const ChatScreen = ({ navigation }: any) => {
   const { userId, isSignedIn } = useAuth();
+  const { width } = useWindowDimensions();
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(null);
   const [sessions, setSessions] = React.useState<ChatSession[]>([]);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
@@ -1355,31 +1414,7 @@ const ChatScreen = ({ navigation }: any) => {
       }
     } catch (error: any) {
       console.error('Error loading sessions:', error);
-      
-      // Fallback to localStorage for development
-      if (Platform.OS === 'web' && process.env.NODE_ENV === 'development') {
-        console.log('Trying localStorage fallback...');
-        const savedSessions = localStorage.getItem(`chat_sessions_${userId}`);
-        if (savedSessions) {
-          try {
-            const parsed = JSON.parse(savedSessions);
-            const sessionsWithDates = parsed.map((session: any) => ({
-              ...session,
-              lastUpdated: new Date(session.lastUpdated),
-              messages: (session.messages || []).map((msg: any) => ({
-                ...msg,
-                timestamp: new Date(msg.timestamp)
-              }))
-            }));
-            setSessions(sessionsWithDates);
-            console.log('Sessions loaded from localStorage:', sessionsWithDates);
-          } catch (parseError) {
-            console.error('Error parsing localStorage sessions:', parseError);
-          }
-        } else {
-          console.log('No localStorage sessions found');
-        }
-      }
+      setError(`Failed to load chat sessions: ${error.message}`);
     }
   };
 
@@ -1440,27 +1475,6 @@ const ChatScreen = ({ navigation }: any) => {
     } catch (error: any) {
       console.error('Error creating session:', error);
       setError(`Failed to create new chat session: ${error.message}`);
-      
-      // Fallback to localStorage for development
-      if (Platform.OS === 'web' && process.env.NODE_ENV === 'development') {
-        const newSession: ChatSession = {
-          id: newSessionId,
-          title: 'New Chat',
-          messages: [],
-          lastUpdated: new Date()
-        };
-        
-        setSessions(prev => [newSession, ...prev]);
-        setCurrentSessionId(newSessionId);
-        setMessages([]);
-        setError('');
-        setShowSidebar(false);
-        
-        // Save to localStorage
-        const updatedSessions = [newSession, ...sessions];
-        localStorage.setItem(`chat_sessions_${userId}`, JSON.stringify(updatedSessions));
-        console.log('Session created with localStorage fallback');
-      }
     }
   };
 
@@ -1497,18 +1511,6 @@ const ChatScreen = ({ navigation }: any) => {
     } catch (error: any) {
       console.error('Error loading session:', error);
       setError(`Failed to load chat session: ${error.message}`);
-      
-      // Fallback to localStorage for development
-      if (Platform.OS === 'web' && process.env.NODE_ENV === 'development') {
-        const session = sessions.find(s => s.id === sessionId);
-        if (session) {
-          setCurrentSessionId(sessionId);
-          setMessages(session.messages);
-          setError('');
-          setShowSidebar(false);
-          console.log('Session loaded from localStorage fallback');
-        }
-      }
     }
   };
 
@@ -1565,38 +1567,7 @@ const ChatScreen = ({ navigation }: any) => {
       }
     } catch (error: any) {
       console.error('Error updating session:', error);
-      
-      // Fallback to localStorage for development
-      if (Platform.OS === 'web' && process.env.NODE_ENV === 'development') {
-        console.log('Using localStorage fallback for session update');
-        
-        // Generate title from first user message if still "New Chat"
-        const currentSession = sessions.find(s => s.id === currentSessionId);
-        let title = currentSession?.title || 'New Chat';
-        if (title === 'New Chat' && newMessages.length > 0) {
-          const firstUserMessage = newMessages.find(m => m.sender === 'user');
-          if (firstUserMessage) {
-            title = firstUserMessage.text.slice(0, 30) + (firstUserMessage.text.length > 30 ? '...' : '');
-          }
-        }
-        
-        // Update local sessions list
-        const updatedSessions = sessions.map(session => {
-          if (session.id === currentSessionId) {
-            return {
-              ...session,
-              title,
-              messages: newMessages,
-              lastUpdated: new Date()
-            };
-          }
-          return session;
-        });
-        
-        setSessions(updatedSessions);
-        localStorage.setItem(`chat_sessions_${userId}`, JSON.stringify(updatedSessions));
-        console.log('Session updated in localStorage');
-      }
+      setError(`Failed to update session: ${error.message}`);
     }
   };
 
@@ -1747,33 +1718,33 @@ const ChatScreen = ({ navigation }: any) => {
           flex: 1, 
           justifyContent: 'center', 
           alignItems: 'center',
-          paddingHorizontal: 24,
+          paddingHorizontal: getResponsiveSpacing(width, 24),
           paddingTop: NAVBAR_HEIGHT,
         }}>
           <View style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
             borderRadius: 16,
-            padding: 32,
+            padding: getResponsiveSpacing(width, 32),
             alignItems: 'center',
-            maxWidth: 400,
+            maxWidth: getResponsiveValue(width, { mobile: 320, tablet: 400, desktop: 450, wide: 500 }),
             borderWidth: 1,
             borderColor: 'rgba(255, 255, 255, 0.1)',
           }}>
             <Text style={{
-              fontSize: 24,
+              fontSize: getResponsiveFontSize(width, 24),
               fontWeight: '700',
               color: WHITE,
-              marginBottom: 12,
+              marginBottom: getResponsiveSpacing(width, 12),
               textAlign: 'center',
               fontFamily: 'Inter_700Bold',
             }}>
               Sign in required
             </Text>
             <Text style={{
-              fontSize: 16,
+              fontSize: getResponsiveFontSize(width, 16),
               color: '#94a3b8',
               textAlign: 'center',
-              marginBottom: 24,
+              marginBottom: getResponsiveSpacing(width, 24),
               fontFamily: 'Inter_400Regular',
             }}>
               Please sign in to chat with TalonAI
@@ -1781,15 +1752,15 @@ const ChatScreen = ({ navigation }: any) => {
             <TouchableOpacity
               style={{
                 backgroundColor: '#3b82f6',
-                paddingVertical: 12,
-                paddingHorizontal: 24,
+                paddingVertical: getResponsiveSpacing(width, 12),
+                paddingHorizontal: getResponsiveSpacing(width, 24),
                 borderRadius: 8,
               }}
               onPress={() => navigation.navigate('Login')}
             >
               <Text style={{
                 color: WHITE,
-                fontSize: 16,
+                fontSize: getResponsiveFontSize(width, 16),
                 fontWeight: '600',
                 fontFamily: 'Inter_600SemiBold',
               }}>
@@ -1808,20 +1779,25 @@ const ChatScreen = ({ navigation }: any) => {
       
       <View style={{ flex: 1, flexDirection: 'row', paddingTop: NAVBAR_HEIGHT }}>
         {/* Sidebar */}
-        {(showSidebar || Platform.OS === 'web') && (
+        {(showSidebar || getBreakpoint(width) !== 'mobile') && (
           <View style={{
-            width: Platform.OS === 'web' ? 280 : '80%',
+            width: getResponsiveValue(width, { 
+              mobile: '90%', 
+              tablet: '50%', 
+              desktop: 280, 
+              wide: 320 
+            }),
             backgroundColor: '#142042',
             borderRightWidth: 1,
             borderRightColor: 'rgba(255, 255, 255, 0.1)',
-            position: Platform.OS === 'web' ? 'relative' : 'absolute',
+            position: getBreakpoint(width) === 'mobile' ? 'absolute' : 'relative',
             height: '100%',
             zIndex: 1000,
           }}>
             {/* Sidebar Header */}
             <View style={{
-              paddingVertical: 20,
-              paddingHorizontal: 24,
+              paddingVertical: getResponsiveSpacing(width, 20),
+              paddingHorizontal: getResponsiveSpacing(width, 24),
               borderBottomWidth: 1,
               borderBottomColor: 'rgba(255, 255, 255, 0.1)',
               flexDirection: 'row',
@@ -1829,7 +1805,7 @@ const ChatScreen = ({ navigation }: any) => {
               alignItems: 'center',
             }}>
               <Text style={{
-                fontSize: 18,
+                fontSize: getResponsiveFontSize(width, 18),
                 fontWeight: '600',
                 color: WHITE,
                 fontFamily: 'Inter_600SemiBold',
@@ -1840,14 +1816,14 @@ const ChatScreen = ({ navigation }: any) => {
                 onPress={createNewSession}
                 style={{
                   backgroundColor: '#3b82f6',
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
+                  paddingVertical: getResponsiveSpacing(width, 8),
+                  paddingHorizontal: getResponsiveSpacing(width, 16),
                   borderRadius: 6,
                 }}
               >
                 <Text style={{
                   color: WHITE,
-                  fontSize: 14,
+                  fontSize: getResponsiveFontSize(width, 14),
                   fontWeight: '600',
                   fontFamily: 'Inter_600SemiBold',
                 }}>
@@ -1857,15 +1833,15 @@ const ChatScreen = ({ navigation }: any) => {
             </View>
 
             {/* Chat Sessions List */}
-            <ScrollView style={{ flex: 1, paddingVertical: 8 }}>
+            <ScrollView style={{ flex: 1, paddingVertical: getResponsiveSpacing(width, 8) }}>
               {sessions.map((session, index) => (
                 <View
                   key={session.id}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    marginHorizontal: 8,
-                    marginVertical: 2,
+                    marginHorizontal: getResponsiveSpacing(width, 8),
+                    marginVertical: getResponsiveSpacing(width, 2),
                     borderRadius: 8,
                     backgroundColor: currentSessionId === session.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                   }}
@@ -1874,21 +1850,21 @@ const ChatScreen = ({ navigation }: any) => {
                     onPress={() => loadSession(session.id)}
                     style={{
                       flex: 1,
-                      paddingVertical: 12,
-                      paddingHorizontal: 16,
+                      paddingVertical: getResponsiveSpacing(width, 12),
+                      paddingHorizontal: getResponsiveSpacing(width, 16),
                     }}
                   >
                     <Text style={{
-                      fontSize: 14,
+                      fontSize: getResponsiveFontSize(width, 14),
                       fontWeight: currentSessionId === session.id ? '600' : '400',
                       color: currentSessionId === session.id ? WHITE : '#94a3b8',
                       fontFamily: currentSessionId === session.id ? 'Inter_600SemiBold' : 'Inter_400Regular',
-                      marginBottom: 4,
+                      marginBottom: getResponsiveSpacing(width, 4),
                     }}>
                       {session.title}
                     </Text>
                     <Text style={{
-                      fontSize: 12,
+                      fontSize: getResponsiveFontSize(width, 12),
                       color: '#64748b',
                       fontFamily: 'Inter_400Regular',
                     }}>
@@ -1898,18 +1874,18 @@ const ChatScreen = ({ navigation }: any) => {
                   <TouchableOpacity
                     onPress={() => deleteSession(session.id)}
                     style={{ 
-                      paddingHorizontal: 12, 
-                      paddingVertical: 12,
+                      paddingHorizontal: getResponsiveSpacing(width, 12), 
+                      paddingVertical: getResponsiveSpacing(width, 12),
                     }}
                   >
-                    <Text style={{ fontSize: 16, color: '#ef4444' }}>🗑️</Text>
+                    <Text style={{ fontSize: getResponsiveFontSize(width, 16), color: '#ef4444' }}>🗑️</Text>
                   </TouchableOpacity>
                 </View>
               ))}
               {sessions.length === 0 && (
-                <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <View style={{ paddingVertical: getResponsiveSpacing(width, 40), alignItems: 'center' }}>
                   <Text style={{
-                    fontSize: 14,
+                    fontSize: getResponsiveFontSize(width, 14),
                     color: '#64748b',
                     fontFamily: 'Inter_400Regular',
                     textAlign: 'center',
@@ -1929,8 +1905,8 @@ const ChatScreen = ({ navigation }: any) => {
         }}>
           {/* Chat Header */}
           <View style={{
-            paddingVertical: 20,
-            paddingHorizontal: 24,
+            paddingVertical: getResponsiveSpacing(width, 20),
+            paddingHorizontal: getResponsiveSpacing(width, 24),
             backgroundColor: '#142042',
             borderBottomWidth: 1,
             borderBottomColor: 'rgba(255, 255, 255, 0.1)',
@@ -1939,20 +1915,20 @@ const ChatScreen = ({ navigation }: any) => {
             alignItems: 'center',
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {Platform.OS !== 'web' && (
+              {getBreakpoint(width) === 'mobile' && (
                 <TouchableOpacity
                   onPress={() => setShowSidebar(!showSidebar)}
                   style={{
-                    marginRight: 12,
-                    padding: 8,
+                    marginRight: getResponsiveSpacing(width, 12),
+                    padding: getResponsiveSpacing(width, 8),
                   }}
                 >
-                  <Text style={{ fontSize: 18, color: '#94a3b8' }}>☰</Text>
+                  <Text style={{ fontSize: getResponsiveFontSize(width, 18), color: '#94a3b8' }}>☰</Text>
                 </TouchableOpacity>
               )}
               <View>
                 <Text style={{
-                  fontSize: 24,
+                  fontSize: getResponsiveFontSize(width, 24),
                   fontWeight: '700',
                   color: WHITE,
                   fontFamily: 'Inter_700Bold',
@@ -1960,7 +1936,7 @@ const ChatScreen = ({ navigation }: any) => {
                   TalonAI
                 </Text>
                 <Text style={{
-                  fontSize: 14,
+                  fontSize: getResponsiveFontSize(width, 14),
                   color: '#94a3b8',
                   fontFamily: 'Inter_400Regular',
                 }}>
@@ -1972,8 +1948,8 @@ const ChatScreen = ({ navigation }: any) => {
               onPress={createNewSession}
               style={{
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                paddingVertical: 8,
-                paddingHorizontal: 16,
+                paddingVertical: getResponsiveSpacing(width, 8),
+                paddingHorizontal: getResponsiveSpacing(width, 16),
                 borderRadius: 6,
                 borderWidth: 1,
                 borderColor: 'rgba(59, 130, 246, 0.3)',
@@ -1981,7 +1957,7 @@ const ChatScreen = ({ navigation }: any) => {
             >
               <Text style={{
                 color: '#3b82f6',
-                fontSize: 14,
+                fontSize: getResponsiveFontSize(width, 14),
                 fontWeight: '600',
                 fontFamily: 'Inter_600SemiBold',
               }}>
@@ -1995,8 +1971,8 @@ const ChatScreen = ({ navigation }: any) => {
           ref={scrollViewRef}
           style={{ flex: 1 }} 
           contentContainerStyle={{ 
-            paddingVertical: 20,
-            paddingHorizontal: 24,
+            paddingVertical: getResponsiveSpacing(width, 20),
+            paddingHorizontal: getResponsiveSpacing(width, 24),
             flexGrow: 1,
           }}
           showsVerticalScrollIndicator={false}
@@ -2006,32 +1982,32 @@ const ChatScreen = ({ navigation }: any) => {
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              paddingVertical: 60,
+              paddingVertical: getResponsiveSpacing(width, 60),
             }}>
               <View style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.03)',
                 borderRadius: 16,
-                padding: 32,
+                padding: getResponsiveSpacing(width, 32),
                 alignItems: 'center',
-                maxWidth: 400,
+                maxWidth: getResponsiveValue(width, { mobile: 320, tablet: 400, desktop: 450, wide: 500 }),
                 borderWidth: 1,
                 borderColor: 'rgba(255, 255, 255, 0.1)',
               }}>
                 <Text style={{
-                  fontSize: 20,
+                  fontSize: getResponsiveFontSize(width, 20),
                   fontWeight: '600',
                   color: WHITE,
-                  marginBottom: 12,
+                  marginBottom: getResponsiveSpacing(width, 12),
                   fontFamily: 'Inter_600SemiBold',
                   textAlign: 'center',
                 }}>
                   Welcome to TalonAI! 👋
                 </Text>
                 <Text style={{
-                  fontSize: 16,
+                  fontSize: getResponsiveFontSize(width, 16),
                   color: '#94a3b8',
                   textAlign: 'center',
-                  lineHeight: 24,
+                  lineHeight: getResponsiveValue(width, { mobile: 22, tablet: 24, desktop: 24, wide: 26 }),
                   fontFamily: 'Inter_400Regular',
                 }}>
                   I'm your AI car modification expert. Just tell me about your car, what you want to achieve, or any issues you're having - I'll learn about your setup as we chat!
@@ -2044,33 +2020,33 @@ const ChatScreen = ({ navigation }: any) => {
             <View
               key={idx}
               style={{
-                marginVertical: 8,
+                marginVertical: getResponsiveSpacing(width, 8),
                 alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
               }}
             >
               <View style={{
                 backgroundColor: msg.sender === 'user' ? '#3b82f6' : 'rgba(255, 255, 255, 0.05)',
                 borderRadius: 16,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                maxWidth: '85%',
+                paddingVertical: getResponsiveSpacing(width, 12),
+                paddingHorizontal: getResponsiveSpacing(width, 16),
+                maxWidth: getResponsiveValue(width, { mobile: '90%', tablet: '85%', desktop: '80%', wide: '75%' }),
                 borderWidth: msg.sender === 'agent' ? 1 : 0,
                 borderColor: 'rgba(255, 255, 255, 0.1)',
               }}>
                 <Text style={{
                   color: msg.sender === 'user' ? WHITE : '#e2e8f0',
-                  fontSize: 16,
-                  lineHeight: 24,
+                  fontSize: getResponsiveFontSize(width, 16),
+                  lineHeight: getResponsiveValue(width, { mobile: 22, tablet: 24, desktop: 24, wide: 26 }),
                   fontFamily: 'Inter_400Regular',
                 }}>
                   {msg.text}
                 </Text>
               </View>
               <Text style={{
-                fontSize: 12,
+                fontSize: getResponsiveFontSize(width, 12),
                 color: '#64748b',
-                marginTop: 4,
-                marginHorizontal: 16,
+                marginTop: getResponsiveSpacing(width, 4),
+                marginHorizontal: getResponsiveSpacing(width, 16),
                 fontFamily: 'Inter_400Regular',
               }}>
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -2080,15 +2056,15 @@ const ChatScreen = ({ navigation }: any) => {
 
           {loading && (
             <View style={{
-              marginVertical: 8,
+              marginVertical: getResponsiveSpacing(width, 8),
               alignItems: 'flex-start',
             }}>
               <View style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 borderRadius: 16,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                maxWidth: '85%',
+                paddingVertical: getResponsiveSpacing(width, 12),
+                paddingHorizontal: getResponsiveSpacing(width, 16),
+                maxWidth: getResponsiveValue(width, { mobile: '90%', tablet: '85%', desktop: '80%', wide: '75%' }),
                 borderWidth: 1,
                 borderColor: 'rgba(255, 255, 255, 0.1)',
                 flexDirection: 'row',
@@ -2097,32 +2073,32 @@ const ChatScreen = ({ navigation }: any) => {
                 <View style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  marginRight: 8,
+                  marginRight: getResponsiveSpacing(width, 8),
                 }}>
                   <View style={{
-                    width: 6,
-                    height: 6,
+                    width: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
+                    height: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
                     borderRadius: 3,
                     backgroundColor: '#3b82f6',
-                    marginRight: 4,
+                    marginRight: getResponsiveSpacing(width, 4),
                   }} />
                   <View style={{
-                    width: 6,
-                    height: 6,
+                    width: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
+                    height: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
                     borderRadius: 3,
                     backgroundColor: '#60a5fa',
-                    marginRight: 4,
+                    marginRight: getResponsiveSpacing(width, 4),
                   }} />
                   <View style={{
-                    width: 6,
-                    height: 6,
+                    width: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
+                    height: getResponsiveValue(width, { mobile: 5, tablet: 6, desktop: 6, wide: 7 }),
                     borderRadius: 3,
                     backgroundColor: '#93c5fd',
                   }} />
                 </View>
                 <Text style={{
                   color: '#94a3b8',
-                  fontSize: 16,
+                  fontSize: getResponsiveFontSize(width, 16),
                   fontStyle: 'italic',
                   fontFamily: 'Inter_400Regular',
                 }}>
@@ -2138,13 +2114,13 @@ const ChatScreen = ({ navigation }: any) => {
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
             borderWidth: 1,
             borderColor: 'rgba(239, 68, 68, 0.3)',
-            margin: 16,
-            padding: 12,
+            margin: getResponsiveSpacing(width, 16),
+            padding: getResponsiveSpacing(width, 12),
             borderRadius: 8,
           }}>
             <Text style={{
               color: '#f87171',
-              fontSize: 14,
+              fontSize: getResponsiveFontSize(width, 14),
               textAlign: 'center',
               fontFamily: 'Inter_400Regular',
             }}>
@@ -2158,8 +2134,8 @@ const ChatScreen = ({ navigation }: any) => {
           backgroundColor: '#142042',
           borderTopWidth: 1,
           borderTopColor: 'rgba(255, 255, 255, 0.1)',
-          paddingHorizontal: 16,
-          paddingVertical: 16,
+          paddingHorizontal: getResponsiveSpacing(width, 16),
+          paddingVertical: getResponsiveSpacing(width, 16),
         }}>
           <View style={{
             flexDirection: 'row',
@@ -2168,20 +2144,20 @@ const ChatScreen = ({ navigation }: any) => {
             borderRadius: 12,
             borderWidth: 1,
             borderColor: 'rgba(255, 255, 255, 0.1)',
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            maxHeight: 120,
+            paddingHorizontal: getResponsiveSpacing(width, 16),
+            paddingVertical: getResponsiveSpacing(width, 8),
+            maxHeight: getResponsiveValue(width, { mobile: 100, tablet: 120, desktop: 120, wide: 140 }),
           }}>
             <TextInput
               ref={inputRef}
               style={{
                 flex: 1,
-                fontSize: 16,
+                fontSize: getResponsiveFontSize(width, 16),
                 color: WHITE,
                 fontFamily: 'Inter_400Regular',
-                paddingVertical: 8,
+                paddingVertical: getResponsiveSpacing(width, 8),
                 paddingHorizontal: 0,
-                maxHeight: 100,
+                maxHeight: getResponsiveValue(width, { mobile: 80, tablet: 100, desktop: 100, wide: 120 }),
               }}
               placeholder="Ask about car modifications, builds, or troubleshooting..."
               placeholderTextColor="#64748b"
@@ -2199,14 +2175,14 @@ const ChatScreen = ({ navigation }: any) => {
               disabled={loading || !input.trim()}
               style={{
                 backgroundColor: loading || !input.trim() ? 'rgba(100, 116, 139, 0.3)' : '#3b82f6',
-                padding: 10,
+                padding: getResponsiveSpacing(width, 10),
                 borderRadius: 8,
-                marginLeft: 8,
+                marginLeft: getResponsiveSpacing(width, 8),
               }}
             >
               <Text style={{
                 color: WHITE,
-                fontSize: 16,
+                fontSize: getResponsiveFontSize(width, 16),
                 fontWeight: '600',
                 fontFamily: 'Inter_600SemiBold',
               }}>
