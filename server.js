@@ -1,4 +1,6 @@
 const express = require('express');
+// Load environment variables from .env or .env.local for local development
+require('dotenv').config();
 const cors = require('cors');
 const path = require('path');
 const serveStatic = require('serve-static');
@@ -13,10 +15,12 @@ app.use(express.json());
 // Import API routes
 const healthRoute = require('./api/health');
 const sessionsRoute = require('./api/sessions/[...params]');
+const chatRoute = require('./api/chat');
 
 // API Routes
 app.use('/api/health', healthRoute);
 app.use('/api/sessions', sessionsRoute);
+app.use('/api/chat', chatRoute);
 
 // Serve static files from the dist directory (Expo web build output)
 app.use(serveStatic(path.join(__dirname, 'dist'), {

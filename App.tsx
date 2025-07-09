@@ -1618,12 +1618,10 @@ const ChatScreen = ({ navigation }: any) => {
     setInput('');
     
     try {
-      const response = await fetch('https://talonaibackend.onrender.com/chat/', {
+      const response = await fetch(`${CHAT_BACKEND_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Origin': 'https://talonai.us',
-          'User-Agent': 'TalonAIFrontend/1.0',
         },
         body: JSON.stringify({
           query: userMessage,
@@ -1703,12 +1701,12 @@ const ChatScreen = ({ navigation }: any) => {
 
   const handleKeyPress = (e: any) => {
     if (Platform.OS === 'web') {
-      if (e.nativeEvent && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+      // Handle Enter key to send message
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
-      } else if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
+        if (input.trim() && !loading) {
+          sendMessage();
+        }
       }
     }
   };
@@ -1719,9 +1717,31 @@ const ChatScreen = ({ navigation }: any) => {
     }
   };
 
+  const deleteSession = async (sessionId: string) => {
+    try {
+      // Confirmation (web only, native TODO)
+      if (Platform.OS === 'web' && !window.confirm('Delete this chat?')) return;
+
+      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}/${sessionId}`;
+      await fetch(url, { method: 'DELETE' });
+
+      // Remove locally
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+
+      // If currently viewing this session, clear view
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      console.error('Error deleting session', err);
+      setError('Failed to delete chat. Please try again.');
+    }
+  };
+
   if (!isSignedIn) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+      <View style={{ flex: 1, backgroundColor: '#0a1026' }}>
         <HulyNavbar navigation={navigation} />
         <View style={{ 
           flex: 1, 
@@ -1731,24 +1751,19 @@ const ChatScreen = ({ navigation }: any) => {
           paddingTop: NAVBAR_HEIGHT,
         }}>
           <View style={{
-            backgroundColor: WHITE,
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
             borderRadius: 16,
-            padding: 40,
+            padding: 32,
             alignItems: 'center',
             maxWidth: 400,
-            shadowColor: BLACK,
-            shadowOpacity: 0.05,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 3,
             borderWidth: 1,
-            borderColor: '#e2e8f0',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
           }}>
             <Text style={{
               fontSize: 24,
               fontWeight: '700',
-              color: BLACK,
-              marginBottom: 16,
+              color: WHITE,
+              marginBottom: 12,
               textAlign: 'center',
               fontFamily: 'Inter_700Bold',
             }}>
@@ -1756,7 +1771,7 @@ const ChatScreen = ({ navigation }: any) => {
             </Text>
             <Text style={{
               fontSize: 16,
-              color: GRAY,
+              color: '#94a3b8',
               textAlign: 'center',
               marginBottom: 24,
               fontFamily: 'Inter_400Regular',
@@ -1765,15 +1780,10 @@ const ChatScreen = ({ navigation }: any) => {
             </Text>
             <TouchableOpacity
               style={{
-                backgroundColor: BLUE,
+                backgroundColor: '#3b82f6',
                 paddingVertical: 12,
                 paddingHorizontal: 24,
                 borderRadius: 8,
-                shadowColor: BLUE,
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 4 },
-                elevation: 4,
               }}
               onPress={() => navigation.navigate('Login')}
             >
@@ -1793,7 +1803,7 @@ const ChatScreen = ({ navigation }: any) => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+    <View style={{ flex: 1, backgroundColor: '#0a1026' }}>
       <HulyNavbar navigation={navigation} />
       
       <View style={{ flex: 1, flexDirection: 'row', paddingTop: NAVBAR_HEIGHT }}>
@@ -1801,19 +1811,19 @@ const ChatScreen = ({ navigation }: any) => {
         {(showSidebar || Platform.OS === 'web') && (
           <View style={{
             width: Platform.OS === 'web' ? 280 : '80%',
-            backgroundColor: WHITE,
+            backgroundColor: '#142042',
             borderRightWidth: 1,
-            borderRightColor: '#e5e7eb',
+            borderRightColor: 'rgba(255, 255, 255, 0.1)',
             position: Platform.OS === 'web' ? 'relative' : 'absolute',
             height: '100%',
             zIndex: 1000,
           }}>
             {/* Sidebar Header */}
             <View style={{
-              paddingVertical: 16,
-              paddingHorizontal: 20,
+              paddingVertical: 20,
+              paddingHorizontal: 24,
               borderBottomWidth: 1,
-              borderBottomColor: '#e5e7eb',
+              borderBottomColor: 'rgba(255, 255, 255, 0.1)',
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -1821,7 +1831,7 @@ const ChatScreen = ({ navigation }: any) => {
               <Text style={{
                 fontSize: 18,
                 fontWeight: '600',
-                color: '#1f2937',
+                color: WHITE,
                 fontFamily: 'Inter_600SemiBold',
               }}>
                 Chat History
@@ -1830,16 +1840,16 @@ const ChatScreen = ({ navigation }: any) => {
                 onPress={createNewSession}
                 style={{
                   backgroundColor: '#3b82f6',
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
                   borderRadius: 6,
                 }}
               >
                 <Text style={{
                   color: WHITE,
                   fontSize: 14,
-                  fontWeight: '500',
-                  fontFamily: 'Inter_500Medium',
+                  fontWeight: '600',
+                  fontFamily: 'Inter_600SemiBold',
                 }}>
                   New
                 </Text>
@@ -1848,41 +1858,59 @@ const ChatScreen = ({ navigation }: any) => {
 
             {/* Chat Sessions List */}
             <ScrollView style={{ flex: 1, paddingVertical: 8 }}>
-              {sessions.map((session) => (
-                <TouchableOpacity
+              {sessions.map((session, index) => (
+                <View
                   key={session.id}
-                  onPress={() => loadSession(session.id)}
                   style={{
-                    paddingVertical: 12,
-                    paddingHorizontal: 20,
-                    backgroundColor: currentSessionId === session.id ? '#f3f4f6' : 'transparent',
-                    borderLeftWidth: currentSessionId === session.id ? 3 : 0,
-                    borderLeftColor: '#3b82f6',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginHorizontal: 8,
+                    marginVertical: 2,
+                    borderRadius: 8,
+                    backgroundColor: currentSessionId === session.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                   }}
                 >
-                  <Text style={{
-                    fontSize: 14,
-                    fontWeight: currentSessionId === session.id ? '600' : '400',
-                    color: currentSessionId === session.id ? '#1f2937' : '#6b7280',
-                    fontFamily: currentSessionId === session.id ? 'Inter_600SemiBold' : 'Inter_400Regular',
-                    marginBottom: 4,
-                  }}>
-                    {session.title}
-                  </Text>
-                  <Text style={{
-                    fontSize: 12,
-                    color: '#9ca3af',
-                    fontFamily: 'Inter_400Regular',
-                  }}>
-                    {session.lastUpdated.toLocaleDateString()}
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => loadSession(session.id)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: currentSessionId === session.id ? '600' : '400',
+                      color: currentSessionId === session.id ? WHITE : '#94a3b8',
+                      fontFamily: currentSessionId === session.id ? 'Inter_600SemiBold' : 'Inter_400Regular',
+                      marginBottom: 4,
+                    }}>
+                      {session.title}
+                    </Text>
+                    <Text style={{
+                      fontSize: 12,
+                      color: '#64748b',
+                      fontFamily: 'Inter_400Regular',
+                    }}>
+                      {session.lastUpdated.toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => deleteSession(session.id)}
+                    style={{ 
+                      paddingHorizontal: 12, 
+                      paddingVertical: 12,
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, color: '#ef4444' }}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
               ))}
               {sessions.length === 0 && (
                 <View style={{ paddingVertical: 40, alignItems: 'center' }}>
                   <Text style={{
                     fontSize: 14,
-                    color: '#9ca3af',
+                    color: '#64748b',
                     fontFamily: 'Inter_400Regular',
                     textAlign: 'center',
                   }}>
@@ -1897,14 +1925,15 @@ const ChatScreen = ({ navigation }: any) => {
         {/* Chat Container */}
         <View style={{ 
           flex: 1,
+          backgroundColor: '#0a1026',
         }}>
           {/* Chat Header */}
           <View style={{
             paddingVertical: 20,
             paddingHorizontal: 24,
-            backgroundColor: WHITE,
+            backgroundColor: '#142042',
             borderBottomWidth: 1,
-            borderBottomColor: '#e5e7eb',
+            borderBottomColor: 'rgba(255, 255, 255, 0.1)',
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -1918,21 +1947,21 @@ const ChatScreen = ({ navigation }: any) => {
                     padding: 8,
                   }}
                 >
-                  <Text style={{ fontSize: 18, color: '#6b7280' }}>☰</Text>
+                  <Text style={{ fontSize: 18, color: '#94a3b8' }}>☰</Text>
                 </TouchableOpacity>
               )}
               <View>
                 <Text style={{
                   fontSize: 24,
-                  fontWeight: '600',
-                  color: '#1f2937',
-                  fontFamily: 'Inter_600SemiBold',
+                  fontWeight: '700',
+                  color: WHITE,
+                  fontFamily: 'Inter_700Bold',
                 }}>
                   TalonAI
                 </Text>
                 <Text style={{
                   fontSize: 14,
-                  color: '#6b7280',
+                  color: '#94a3b8',
                   fontFamily: 'Inter_400Regular',
                 }}>
                   Your AI car modification expert
@@ -1942,19 +1971,19 @@ const ChatScreen = ({ navigation }: any) => {
             <TouchableOpacity
               onPress={createNewSession}
               style={{
-                backgroundColor: '#f3f4f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 paddingVertical: 8,
                 paddingHorizontal: 16,
-                borderRadius: 8,
+                borderRadius: 6,
                 borderWidth: 1,
-                borderColor: '#e5e7eb',
+                borderColor: 'rgba(59, 130, 246, 0.3)',
               }}
             >
               <Text style={{
-                color: '#374151',
+                color: '#3b82f6',
                 fontSize: 14,
-                fontWeight: '500',
-                fontFamily: 'Inter_500Medium',
+                fontWeight: '600',
+                fontFamily: 'Inter_600SemiBold',
               }}>
                 New chat
               </Text>
@@ -1980,23 +2009,18 @@ const ChatScreen = ({ navigation }: any) => {
               paddingVertical: 60,
             }}>
               <View style={{
-                backgroundColor: WHITE,
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
                 borderRadius: 16,
                 padding: 32,
                 alignItems: 'center',
                 maxWidth: 400,
-                shadowColor: BLACK,
-                shadowOpacity: 0.03,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
                 borderWidth: 1,
-                borderColor: '#e5e7eb',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
               }}>
                 <Text style={{
                   fontSize: 20,
                   fontWeight: '600',
-                  color: '#1f2937',
+                  color: WHITE,
                   marginBottom: 12,
                   fontFamily: 'Inter_600SemiBold',
                   textAlign: 'center',
@@ -2005,7 +2029,7 @@ const ChatScreen = ({ navigation }: any) => {
                 </Text>
                 <Text style={{
                   fontSize: 16,
-                  color: '#6b7280',
+                  color: '#94a3b8',
                   textAlign: 'center',
                   lineHeight: 24,
                   fontFamily: 'Inter_400Regular',
@@ -2025,21 +2049,16 @@ const ChatScreen = ({ navigation }: any) => {
               }}
             >
               <View style={{
-                backgroundColor: msg.sender === 'user' ? '#3b82f6' : WHITE,
-                borderRadius: 18,
+                backgroundColor: msg.sender === 'user' ? '#3b82f6' : 'rgba(255, 255, 255, 0.05)',
+                borderRadius: 16,
                 paddingVertical: 12,
                 paddingHorizontal: 16,
                 maxWidth: '85%',
-                shadowColor: BLACK,
-                shadowOpacity: 0.05,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
                 borderWidth: msg.sender === 'agent' ? 1 : 0,
-                borderColor: '#e5e7eb',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
               }}>
                 <Text style={{
-                  color: msg.sender === 'user' ? WHITE : '#1f2937',
+                  color: msg.sender === 'user' ? WHITE : '#e2e8f0',
                   fontSize: 16,
                   lineHeight: 24,
                   fontFamily: 'Inter_400Regular',
@@ -2049,7 +2068,7 @@ const ChatScreen = ({ navigation }: any) => {
               </View>
               <Text style={{
                 fontSize: 12,
-                color: '#9ca3af',
+                color: '#64748b',
                 marginTop: 4,
                 marginHorizontal: 16,
                 fontFamily: 'Inter_400Regular',
@@ -2065,47 +2084,47 @@ const ChatScreen = ({ navigation }: any) => {
               alignItems: 'flex-start',
             }}>
               <View style={{
-                backgroundColor: WHITE,
-                borderRadius: 18,
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: 16,
                 paddingVertical: 12,
                 paddingHorizontal: 16,
                 maxWidth: '85%',
                 borderWidth: 1,
-                borderColor: '#e5e7eb',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
                 flexDirection: 'row',
                 alignItems: 'center',
               }}>
                 <View style={{
                   flexDirection: 'row',
                   alignItems: 'center',
+                  marginRight: 8,
                 }}>
                   <View style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#9ca3af',
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: '#3b82f6',
                     marginRight: 4,
                   }} />
                   <View style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#d1d5db',
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: '#60a5fa',
                     marginRight: 4,
                   }} />
                   <View style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#e5e7eb',
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: '#93c5fd',
                   }} />
                 </View>
                 <Text style={{
-                  color: '#6b7280',
+                  color: '#94a3b8',
                   fontSize: 16,
                   fontStyle: 'italic',
                   fontFamily: 'Inter_400Regular',
-                  marginLeft: 8,
                 }}>
                   TalonAI is thinking...
                 </Text>
@@ -2116,15 +2135,15 @@ const ChatScreen = ({ navigation }: any) => {
 
         {error ? (
           <View style={{
-            backgroundColor: '#fef2f2',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
             borderWidth: 1,
-            borderColor: '#fecaca',
+            borderColor: 'rgba(239, 68, 68, 0.3)',
             margin: 16,
             padding: 12,
             borderRadius: 8,
           }}>
             <Text style={{
-              color: '#dc2626',
+              color: '#f87171',
               fontSize: 14,
               textAlign: 'center',
               fontFamily: 'Inter_400Regular',
@@ -2136,58 +2155,53 @@ const ChatScreen = ({ navigation }: any) => {
 
         {/* Input Area */}
         <View style={{
-          backgroundColor: WHITE,
+          backgroundColor: '#142042',
           borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
+          borderTopColor: 'rgba(255, 255, 255, 0.1)',
           paddingHorizontal: 16,
           paddingVertical: 16,
         }}>
           <View style={{
             flexDirection: 'row',
             alignItems: 'flex-end',
-            backgroundColor: '#f9fafb',
-            borderRadius: 24,
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: 12,
             borderWidth: 1,
-            borderColor: '#e5e7eb',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
             paddingHorizontal: 16,
             paddingVertical: 8,
             maxHeight: 120,
           }}>
-                          <TextInput
-                ref={inputRef}
-                style={{
-                  flex: 1,
-                  fontSize: 16,
-                  color: '#1f2937',
-                  fontFamily: 'Inter_400Regular',
-                  paddingVertical: 8,
-                  paddingHorizontal: 0,
-                  maxHeight: 100,
-                }}
-                placeholder="Ask about car modifications, builds, or troubleshooting..."
-                placeholderTextColor="#9ca3af"
-                value={input}
-                onChangeText={setInput}
-                editable={!loading}
-                onSubmitEditing={handleSubmitEditing}
-                onKeyPress={handleKeyPress}
-                returnKeyType="send"
-                multiline
-                textAlignVertical="top"
-              />
+            <TextInput
+              ref={inputRef}
+              style={{
+                flex: 1,
+                fontSize: 16,
+                color: WHITE,
+                fontFamily: 'Inter_400Regular',
+                paddingVertical: 8,
+                paddingHorizontal: 0,
+                maxHeight: 100,
+              }}
+              placeholder="Ask about car modifications, builds, or troubleshooting..."
+              placeholderTextColor="#64748b"
+              value={input}
+              onChangeText={setInput}
+              editable={!loading}
+              onSubmitEditing={handleSubmitEditing}
+              onKeyPress={handleKeyPress}
+              returnKeyType="send"
+              multiline
+              textAlignVertical="top"
+            />
             <TouchableOpacity
               onPress={sendMessage}
               disabled={loading || !input.trim()}
               style={{
-                backgroundColor: loading || !input.trim() ? '#e5e7eb' : '#3b82f6',
+                backgroundColor: loading || !input.trim() ? 'rgba(100, 116, 139, 0.3)' : '#3b82f6',
                 padding: 10,
-                borderRadius: 20,
+                borderRadius: 8,
                 marginLeft: 8,
-                shadowColor: '#3b82f6',
-                shadowOpacity: loading || !input.trim() ? 0 : 0.25,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: loading || !input.trim() ? 0 : 3,
               }}
             >
               <Text style={{
@@ -2233,8 +2247,8 @@ const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY ||
   'pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ';
 const CHAT_BACKEND_URL = process.env.CHAT_BACKEND_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? '' // Use relative URLs for Vercel API routes
-    : (Platform.OS === 'web' ? '' : 'http://localhost:8081')); // Use relative URLs for local web development
+    ? '' // Use relative URLs for production
+    : (Platform.OS === 'web' ? '' : 'http://localhost:3000')); // Use relative URLs for local web development
 
 export default function App() {
   const [fontsLoaded] = useFonts({
