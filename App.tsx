@@ -2309,7 +2309,7 @@ const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY ||
   'pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ';
 const CHAT_BACKEND_URL = process.env.CHAT_BACKEND_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? '' // Use relative URLs for production
+    ? 'https://talonaibackend.onrender.com' // Use the correct backend URL for production
     : (Platform.OS === 'web' ? '' : 'http://localhost:3000')); // Use relative URLs for local web development
 
 export default function App() {
