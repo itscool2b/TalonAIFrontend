@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, Text, Image, TouchableOpacity, TextInput, StyleSheet, Platform, ScrollView, Animated, Dimensions, Pressable, useWindowDimensions } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-expo';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import AppLoading from 'expo-app-loading';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1366,261 +1366,55 @@ interface ChatSession {
 
 const ChatScreen = ({ navigation }: any) => {
   const { userId, isSignedIn } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
   const { width } = useWindowDimensions();
-  const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(null);
-  const [sessions, setSessions] = React.useState<ChatSession[]>([]);
-  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
-  const [input, setInput] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
-  const [showSidebar, setShowSidebar] = React.useState(false);
-  const [sessionsLoaded, setSessionsLoaded] = React.useState(false);
-  const [isLoadingSessions, setIsLoadingSessions] = React.useState(false);
   const scrollViewRef = React.useRef<any>(null);
   const inputRef = React.useRef<any>(null);
 
-  // Don't load sessions automatically - wait for user interaction
-  React.useEffect(() => {
-    if (userId && !sessionsLoaded && showSidebar) {
-      loadUserSessions();
-    }
-  }, [userId, showSidebar, sessionsLoaded]);
+  // TalonAI Backend configuration
+  const TALONAI_BACKEND_URL = 'https://talonaibackend.onrender.com';
 
-  const loadUserSessions = async () => {
-    if (isLoadingSessions) return; // Prevent multiple simultaneous loads
-    
-    console.log('Loading user sessions for userId:', userId);
-    setIsLoadingSessions(true);
-    
-    try {
-      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}`;
-      console.log('GET Sessions URL:', url);
-      
-      const response = await fetch(url);
-      console.log('Sessions response status:', response.status);
-      
-      if (response.ok) {
-        const sessionsData = await response.json();
-        console.log('Raw sessions data:', sessionsData);
-        
-        const sessionsWithDates = sessionsData.map((session: any) => ({
-          id: session.sessionId,
-          title: session.title || 'New Chat',
-          messages: [], // Don't load messages here, only load when clicking on session
-          lastUpdated: new Date(session.lastUpdated || session.createdAt)
-        }));
-        
-        console.log('Processed sessions:', sessionsWithDates);
-        setSessions(sessionsWithDates);
-        setSessionsLoaded(true);
-        setError(''); // Clear any previous errors
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to load sessions:', errorText);
-        // Don't throw error, just log it and show empty state
-        setSessions([]);
-        setSessionsLoaded(true);
-      }
-    } catch (error: any) {
-      console.error('Error loading sessions:', error);
-      // Don't crash the app, just show empty sessions
-      setSessions([]);
-      setSessionsLoaded(true);
-      // Only show error if it's not a connection issue
-      if (!error.message?.includes('Failed to fetch') && !error.message?.includes('NetworkError')) {
-        setError('Unable to load previous chats');
-      }
-    } finally {
-      setIsLoadingSessions(false);
+  useEffect(() => {
+    // Create a default session when component mounts
+    if (isSignedIn && !currentSessionId) {
+      const defaultSessionId = generateSessionId();
+      setCurrentSessionId(defaultSessionId);
+      setSessions([{
+        id: defaultSessionId,
+        title: 'New Chat',
+        messages: [],
+        lastUpdated: new Date()
+      }]);
     }
-  };
+  }, [isSignedIn, currentSessionId]);
 
   // Auto-scroll to bottom when messages change
-  React.useEffect(() => {
+  useEffect(() => {
     if (scrollViewRef.current && messages.length > 0) {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [messages]);
 
-  const createNewSession = async () => {
+  const createNewSession = () => {
     const newSessionId = generateSessionId();
-    console.log('Creating new session:', { userId, sessionId: newSessionId });
+    const newSession: ChatSession = {
+      id: newSessionId,
+      title: 'New Chat',
+      messages: [],
+      lastUpdated: new Date()
+    };
     
-    try {
-      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}`;
-      console.log('POST URL:', url);
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: newSessionId,
-          title: 'New Chat'
-        }),
-      });
-      
-      console.log('Response status:', response.status);
-      const responseText = await response.text();
-      console.log('Response text:', responseText);
-      
-      if (response.ok) {
-        let responseData;
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (e) {
-          console.error('Invalid JSON response:', responseText);
-          throw new Error('Invalid response from server');
-        }
-        const newSession: ChatSession = {
-          id: newSessionId,
-          title: 'New Chat',
-          messages: [],
-          lastUpdated: new Date()
-        };
-        
-        setSessions(prev => [newSession, ...prev]);
-        setCurrentSessionId(newSessionId);
-        setMessages([]);
-        setError('');
-        setShowSidebar(false);
-        console.log('Session created successfully');
-      } else {
-        let errorData;
-        try {
-          errorData = JSON.parse(responseText);
-        } catch {
-          // If response is not JSON (e.g., HTML error page), extract meaningful error
-          if (responseText.includes('DOCTYPE') || responseText.includes('<html')) {
-            errorData = { error: 'Server error - please try again' };
-          } else {
-            errorData = { error: responseText || `HTTP ${response.status}` };
-          }
-        }
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-    } catch (error: any) {
-      console.error('Error creating session:', error);
-      // Still create a local session even if server fails
-      const newSession: ChatSession = {
-        id: newSessionId,
-        title: 'New Chat',
-        messages: [],
-        lastUpdated: new Date()
-      };
-      
-      setSessions(prev => [newSession, ...prev]);
-      setCurrentSessionId(newSessionId);
-      setMessages([]);
-      setShowSidebar(false);
-      
-      // Show a warning but don't prevent chat
-      if (!error.message?.includes('Failed to fetch')) {
-        setError('Chat will work but may not save to cloud');
-      }
-    }
-  };
-
-  const loadSession = async (sessionId: string) => {
-    console.log('Loading session:', sessionId);
+    setSessions(prev => [newSession, ...prev]);
+    setCurrentSessionId(newSessionId);
+    setMessages([]);
     setError('');
-    
-    try {
-      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}/${sessionId}`;
-      console.log('GET URL:', url);
-      
-      const response = await fetch(url);
-      console.log('Response status:', response.status);
-      
-      if (response.ok) {
-        const sessionData = await response.json();
-        console.log('Session data:', sessionData);
-        
-        const messagesWithDates = (sessionData.messages || []).map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }));
-        
-        setCurrentSessionId(sessionId);
-        setMessages(messagesWithDates);
-        setError('');
-        setShowSidebar(false);
-        console.log('Session loaded successfully');
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to load session:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-    } catch (error: any) {
-      console.error('Error loading session:', error);
-      // Still switch to the session even if loading fails
-      setCurrentSessionId(sessionId);
-      setMessages([]);
-      setShowSidebar(false);
-      
-      // Only show error for non-network issues
-      if (!error.message?.includes('Failed to fetch')) {
-        setError('Unable to load chat history');
-      }
-    }
-  };
-
-  const updateCurrentSession = async (newMessages: ChatMessage[]) => {
-    if (!currentSessionId) return;
-    
-    console.log('Updating session:', currentSessionId, 'with', newMessages.length, 'messages');
-    
-    try {
-      // Generate title from first user message if still "New Chat"
-      const currentSession = sessions.find(s => s.id === currentSessionId);
-      let title = currentSession?.title || 'New Chat';
-      if (title === 'New Chat' && newMessages.length > 0) {
-        const firstUserMessage = newMessages.find(m => m.sender === 'user');
-        if (firstUserMessage) {
-          title = firstUserMessage.text.slice(0, 30) + (firstUserMessage.text.length > 30 ? '...' : '');
-        }
-      }
-      
-      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}/${currentSessionId}`;
-      console.log('PUT URL:', url);
-      
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: newMessages,
-          title: title
-        }),
-      });
-      
-      console.log('Update response status:', response.status);
-      
-      if (response.ok) {
-        // Update local sessions list
-        setSessions(prev => prev.map(session => {
-          if (session.id === currentSessionId) {
-            return {
-              ...session,
-              title,
-              messages: newMessages,
-              lastUpdated: new Date()
-            };
-          }
-          return session;
-        }));
-        console.log('Session updated successfully');
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to update session:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-    } catch (error: any) {
-      console.error('Error updating session:', error);
-      setError(`Failed to update session: ${error.message}`);
-    }
+    setShowSidebar(false);
   };
 
   const sendMessage = async () => {
@@ -1628,8 +1422,8 @@ const ChatScreen = ({ navigation }: any) => {
     
     // Create new session if none exists
     if (!currentSessionId) {
-      await createNewSession();
-      return; // Wait for session to be created, then user can send message again
+      createNewSession();
+      return;
     }
     
     const newMessage: ChatMessage = { sender: 'user', text: input.trim(), timestamp: new Date() };
@@ -1641,7 +1435,8 @@ const ChatScreen = ({ navigation }: any) => {
     setInput('');
     
     try {
-      const response = await fetch(`${CHAT_BACKEND_URL}/api/chat`, {
+      // Send message directly to TalonAI backend
+      const response = await fetch(`${TALONAI_BACKEND_URL}/chat/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1666,16 +1461,15 @@ const ChatScreen = ({ navigation }: any) => {
       
       const data = await response.json();
       
-      // Simple response handling - just display whatever the backend returns
+      // Handle AI response
       let agentMessage = '';
-      if (data.final_message) {
-        agentMessage = data.final_message;
-      } else if (data.message) {
+      if (data.message) {
         agentMessage = data.message;
+      } else if (data.final_message) {
+        agentMessage = data.final_message;
       } else if (data.error) {
         throw new Error(data.error);
       } else {
-        // Fallback for any other response format
         agentMessage = JSON.stringify(data);
       }
       
@@ -1687,7 +1481,22 @@ const ChatScreen = ({ navigation }: any) => {
       
       const finalMessages = [...updatedMessages, agentResponse];
       setMessages(finalMessages);
-      await updateCurrentSession(finalMessages);
+      
+      // Update local session with new messages
+      setSessions(prev => prev.map(session => {
+        if (session.id === currentSessionId) {
+          const title = session.title === 'New Chat' && finalMessages.length > 0
+            ? userMessage.slice(0, 30) + (userMessage.length > 30 ? '...' : '')
+            : session.title;
+          return {
+            ...session,
+            title,
+            messages: finalMessages,
+            lastUpdated: new Date()
+          };
+        }
+        return session;
+      }));
       
     } catch (err: any) {
       let errorMessage = 'Error sending message';
@@ -1698,7 +1507,7 @@ const ChatScreen = ({ navigation }: any) => {
         agentResponse = 'I\'m having trouble connecting to the server. Please check your internet connection and try again.';
       } else if (err.message.includes('403')) {
         errorMessage = 'Access denied';
-        agentResponse = 'Access denied. Please make sure you\'re using the official TalonAI app.';
+        agentResponse = 'Access denied. Please make sure you\'re signed in.';
       } else if (err.message.includes('500')) {
         errorMessage = 'Server error';
         agentResponse = 'The server is experiencing issues. Please try again in a few moments.';
@@ -1714,11 +1523,30 @@ const ChatScreen = ({ navigation }: any) => {
         timestamp: new Date() 
       };
       
-      const finalMessages = [...updatedMessages, errorMsg];
-      setMessages(finalMessages);
-      await updateCurrentSession(finalMessages);
+      setMessages([...updatedMessages, errorMsg]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSession = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      setCurrentSessionId(sessionId);
+      setMessages(session.messages);
+      setError('');
+      setShowSidebar(false);
+    }
+  };
+
+  const deleteSession = (sessionId: string) => {
+    if (Platform.OS === 'web' && !window.confirm('Delete this chat?')) return;
+    
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    
+    if (currentSessionId === sessionId) {
+      setCurrentSessionId(null);
+      setMessages([]);
     }
   };
 
@@ -1737,28 +1565,6 @@ const ChatScreen = ({ navigation }: any) => {
   const handleSubmitEditing = () => {
     if (Platform.OS !== 'web') {
       sendMessage();
-    }
-  };
-
-  const deleteSession = async (sessionId: string) => {
-    try {
-      // Confirmation (web only, native TODO)
-      if (Platform.OS === 'web' && !window.confirm('Delete this chat?')) return;
-
-      const url = `${CHAT_BACKEND_URL}/api/sessions/${userId}/${sessionId}`;
-      await fetch(url, { method: 'DELETE' });
-
-      // Remove locally
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
-
-      // If currently viewing this session, clear view
-      if (currentSessionId === sessionId) {
-        setCurrentSessionId(null);
-        setMessages([]);
-      }
-    } catch (err) {
-      console.error('Error deleting session', err);
-      setError('Failed to delete chat. Please try again.');
     }
   };
 
@@ -1886,41 +1692,7 @@ const ChatScreen = ({ navigation }: any) => {
 
             {/* Chat Sessions List */}
             <ScrollView style={{ flex: 1, paddingVertical: getResponsiveSpacing(width, 8) }}>
-              {!sessionsLoaded && !isLoadingSessions && (
-                <TouchableOpacity
-                  onPress={loadUserSessions}
-                  style={{
-                    margin: getResponsiveSpacing(width, 16),
-                    padding: getResponsiveSpacing(width, 12),
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderRadius: 8,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{
-                    color: '#3b82f6',
-                    fontSize: getResponsiveFontSize(width, 14),
-                    fontWeight: '600',
-                    fontFamily: 'Inter_600SemiBold',
-                  }}>
-                    Load Previous Chats
-                  </Text>
-                </TouchableOpacity>
-              )}
-              
-              {isLoadingSessions && (
-                <View style={{ paddingVertical: getResponsiveSpacing(width, 40), alignItems: 'center' }}>
-                  <Text style={{
-                    fontSize: getResponsiveFontSize(width, 14),
-                    color: '#64748b',
-                    fontFamily: 'Inter_400Regular',
-                  }}>
-                    Loading chats...
-                  </Text>
-                </View>
-              )}
-              
-              {sessionsLoaded && sessions.map((session, index) => (
+              {sessions.map((session, index) => (
                 <View
                   key={session.id}
                   style={{
@@ -1968,7 +1740,7 @@ const ChatScreen = ({ navigation }: any) => {
                   </TouchableOpacity>
                 </View>
               ))}
-              {sessionsLoaded && sessions.length === 0 && (
+              {sessions.length === 0 && (
                 <View style={{ paddingVertical: getResponsiveSpacing(width, 40), alignItems: 'center' }}>
                   <Text style={{
                     fontSize: getResponsiveFontSize(width, 14),
@@ -2309,7 +2081,7 @@ const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY ||
   'pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ';
 const CHAT_BACKEND_URL = process.env.CHAT_BACKEND_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://talonaibackend.onrender.com' // Use the correct backend URL for production
+    ? '' // Use relative URLs for production
     : (Platform.OS === 'web' ? '' : 'http://localhost:3000')); // Use relative URLs for local web development
 
 export default function App() {
