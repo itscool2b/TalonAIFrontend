@@ -8,7 +8,7 @@ Go to your Vercel project → **Settings** → **Environment Variables** and add
 
 ```
 VITE_CLERK_PUBLISHABLE_KEY = pk_test_dml0YWwtb3Jpb2xlLTI5LmNsZXJrLmFjY291bnRzLmRldiQ
-MONGODB_URI = mongodb+srv://itscool2b:10715Royal!@talonai.biu18sm.mongodb.net/talonai-chat?retryWrites=true&w=majority&appName=TalonAI
+DATABASE_URL = postgres://postgres:10715Royal!@db.kzsfexkobshtffdwdpmb.supabase.co:6543/postgres
 ```
 
 ### 2. File Structure for Vercel
@@ -48,10 +48,10 @@ vercel deploy --prod
 ### 5. What's Included
 
 ✅ **Serverless API**: All chat backend functionality as Vercel functions
-✅ **MongoDB Integration**: Direct connection to your MongoDB Atlas
+✅ **Supabase Integration**: Direct connection to your Supabase PostgreSQL database
 ✅ **CORS Enabled**: Proper headers for web app
 ✅ **Environment Variables**: Secure configuration
-✅ **Chat Persistence**: All chat sessions stored in MongoDB
+✅ **Chat Persistence**: All chat sessions stored in PostgreSQL
 ✅ **Auto-scaling**: Vercel handles traffic automatically
 
 ### 6. Testing After Deployment
@@ -65,7 +65,7 @@ vercel deploy --prod
 Everything runs on Vercel:
 - Frontend: Static files + React app
 - Backend: Serverless functions
-- Database: MongoDB Atlas (external)
+- Database: Supabase PostgreSQL (external)
 - Authentication: Clerk (external)
 
 ## 🎯 Ready to Deploy!

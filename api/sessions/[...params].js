@@ -14,21 +14,62 @@ const connectToDatabase = async () => {
       throw new Error('DATABASE_URL environment variable is not set');
     }
     
+    console.log('Attempting to connect to Supabase PostgreSQL...');
+    console.log('DATABASE_URL format:', process.env.DATABASE_URL.substring(0, 20) + '...' + process.env.DATABASE_URL.slice(-10));
+    console.log('Full DATABASE_URL (for debugging):', process.env.DATABASE_URL);
+    
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      ssl: process.env.NODE_ENV === 'production' ? { 
+        rejectUnauthorized: false,
+        // Handle Supabase SSL configuration
+        ca: false 
+      } : false,
+      // Add connection pool settings for better reliability
+      max: 10, // Maximum number of clients in the pool
+      idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+      connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
     });
 
-    // Test connection
-    await pool.query('SELECT NOW()');
-    console.log('Connected to PostgreSQL');
+    // Test connection with timeout
+    console.log('Testing database connection...');
+    const testQuery = await Promise.race([
+      pool.query('SELECT NOW() as current_time, version() as db_version'),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000)
+      )
+    ]);
+    
+    console.log('✅ Connected to PostgreSQL successfully');
+    console.log('Database time:', testQuery.rows[0].current_time);
+    console.log('PostgreSQL version:', testQuery.rows[0].db_version.split(' ')[0]);
 
     // Create tables if they don't exist
     await createTables();
     
     return pool;
   } catch (error) {
-    console.error('PostgreSQL connection error:', error);
+    console.error('❌ PostgreSQL connection error:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error details:', {
+      errno: error.errno,
+      syscall: error.syscall,
+      address: error.address,
+      port: error.port
+    });
+    
+    // Reset pool on connection failure
+    pool = null;
+    
+    // Provide helpful error messages
+    if (error.code === 'ENETUNREACH') {
+      console.error('🔍 Network unreachable error - this usually means:');
+      console.error('  1. Check your DATABASE_URL environment variable');
+      console.error('  2. Verify your Supabase database is active (not paused)');
+      console.error('  3. Check if there are network restrictions');
+      console.error('  4. Try using the IPv4 connection string from Supabase');
+    }
+    
     throw error;
   }
 };
