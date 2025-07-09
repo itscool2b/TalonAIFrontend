@@ -18,8 +18,24 @@ const connectToDatabase = async () => {
     console.log('DATABASE_URL format:', process.env.DATABASE_URL.substring(0, 20) + '...' + process.env.DATABASE_URL.slice(-10));
     console.log('Full DATABASE_URL (for debugging):', process.env.DATABASE_URL);
     
+    // Use Supabase pooler for better IPv4 compatibility on Render
+    let connectionString = process.env.DATABASE_URL;
+    
+    // Convert direct connection to pooler connection for production IPv4 compatibility
+    if (process.env.NODE_ENV === 'production' && connectionString.includes('db.') && connectionString.includes('.supabase.co')) {
+      // Extract project ref from the URL
+      const projectRef = connectionString.match(/db\.([^\.]+)\.supabase\.co/)?.[1];
+      if (projectRef) {
+        connectionString = connectionString.replace(
+          /postgres:\/\/postgres:([^@]+)@db\.([^\.]+)\.supabase\.co:6543/,
+          `postgres://postgres.${projectRef}:$1@aws-0-us-west-1.pooler.supabase.com:5432`
+        );
+        console.log('Using Supabase pooler for IPv4 compatibility:', connectionString.substring(0, 60) + '...');
+      }
+    }
+    
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: connectionString,
       ssl: process.env.NODE_ENV === 'production' ? { 
         rejectUnauthorized: false,
         // Handle Supabase SSL configuration
