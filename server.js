@@ -28,12 +28,10 @@ app.use(express.json());
 
 // Import API routes
 const healthRoute = require('./api/health');
-const sessionsRoute = require('./api/sessions/[...params]');
 const chatRoute = require('./api/chat');
 
 // API Routes
 app.use('/api/health', healthRoute);
-app.use('/api/sessions', sessionsRoute);
 app.use('/api/chat', chatRoute);
 
 // Serve static files from the dist directory (Expo web build output)
