@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const dns = require('dns');
+const { URL } = require('url');
 
 // Force IPv4 on Render
 if (process.env.NODE_ENV === 'production') {
@@ -12,19 +13,62 @@ const router = express.Router();
 // PostgreSQL connection
 let pool;
 
+// Function to convert IPv6 URL to IPv4 pooler URL
+const convertToIPv4PoolerURL = (databaseUrl) => {
+  try {
+    // Check if URL contains IPv6 pattern (multiple colons)
+    const ipv6Pattern = /([0-9a-fA-F]{1,4}:){2,}/;
+    
+    if (ipv6Pattern.test(databaseUrl)) {
+      console.log('🔄 Detected IPv6 address, converting to IPv4 pooler URL...');
+      
+      // Extract password from the URL
+      const passwordMatch = databaseUrl.match(/:([^@]+)@/);
+      const password = passwordMatch ? passwordMatch[1] : '10715Royal!';
+      
+      // Extract username and project ref
+      const usernameMatch = databaseUrl.match(/postgres\.([^:]+):/);
+      const projectRef = usernameMatch ? usernameMatch[1] : 'kzsfexkobshtffdwdpmb';
+      
+      // Construct the IPv4 pooler URL
+      const ipv4Url = `postgres://postgres.${projectRef}:${password}@aws-0-us-west-1.pooler.supabase.com:6543/postgres`;
+      console.log('✅ Converted to IPv4 pooler URL');
+      return ipv4Url;
+    }
+    
+    // Try parsing as regular URL for non-IPv6 cases
+    try {
+      const url = new URL(databaseUrl);
+      return databaseUrl;
+    } catch {
+      // If parsing fails, return as-is
+      return databaseUrl;
+    }
+  } catch (error) {
+    console.error('Error converting URL:', error);
+    return databaseUrl;
+  }
+};
+
 const connectToDatabase = async () => {
   if (pool) return pool;
   
   try {
-    if (!process.env.DATABASE_URL) {
+    // First check for explicit pooler URL (highest priority)
+    let connectionString = process.env.SUPABASE_POOLER_URL || process.env.DATABASE_URL;
+    
+    if (!connectionString) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
     
+    // Convert IPv6 to IPv4 if needed
+    connectionString = convertToIPv4PoolerURL(connectionString);
+    
     console.log('Attempting to connect to Supabase PostgreSQL...');
-    console.log('DATABASE_URL format:', process.env.DATABASE_URL.substring(0, 30) + '...' + process.env.DATABASE_URL.slice(-15));
+    console.log('DATABASE_URL format:', connectionString.substring(0, 30) + '...' + connectionString.slice(-15));
     
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: connectionString,
       ssl: process.env.NODE_ENV === 'production' ? { 
         rejectUnauthorized: false,
         // Handle Supabase SSL configuration
@@ -69,10 +113,9 @@ const connectToDatabase = async () => {
     // Provide helpful error messages
     if (error.code === 'ENETUNREACH') {
       console.error('🔍 Network unreachable error - this usually means:');
-      console.error('  1. Check your DATABASE_URL environment variable');
-      console.error('  2. Verify your Supabase database is active (not paused)');
-      console.error('  3. Check if there are network restrictions');
-      console.error('  4. Try using the IPv4 connection string from Supabase');
+      console.error('  1. Your DATABASE_URL is using IPv6 which Render cannot reach');
+      console.error('  2. Update DATABASE_URL in Render to: postgres://postgres.kzsfexkobshtffdwdpmb:10715Royal!@aws-0-us-west-1.pooler.supabase.com:6543/postgres');
+      console.error('  3. Or check if your Supabase database is paused');
     }
     
     throw error;
